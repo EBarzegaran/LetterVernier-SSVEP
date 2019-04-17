@@ -107,13 +107,18 @@ clear decompAxx_Letter_all decompAxx_Vernier_all A_Vernier_all A_Letter_all D_Le
 %SELECT the harmonic to do analysis 
 analHarms = [1 2];
 Harms = {'H1F1','H2F1','H3F1','H4F1'};
-
+RedoRCA = false;
 % Group Level RCA
-for f = 1:numel(analHarms)
-    fRCA = Finds(analHarms(f));
-    for ts = 1:numel(Task)
-        [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),~,A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)})] = mrC.SpatialFilters.RCA(MergeAxx(axx.(Task{ts})),'freq_range',Freqs(fRCA));
+if RedoRCA || ~exist(fullfile('ResultData','GroupRCA.mat'),'file')
+    for f = 1:numel(analHarms)
+        fRCA = Finds(analHarms(f));
+        for ts = 1:numel(Task)
+            [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),~,A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)})] = mrC.SpatialFilters.RCA(MergeAxx(axx.(Task{ts})),'freq_range',Freqs(fRCA));
+        end
     end
+    save(fullfile('ResultData','GroupRCA'),'decompAxx_all','A_all','D_all','-v7.3');
+else
+    load(fullfile('ResultData','GroupRCA.mat'));
 end
 
 %% Plot RC components calculated on all subjects
@@ -194,19 +199,83 @@ for f = 1:numel(analHarms)
     set(SP(6),'position',get(SP(6),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
     set(SP(5),'position',get(SP(5),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
 
-    print(FIG,['../Presentation/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
+    print(FIG,['../Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
     close all;
-    clear Ver_cos Ver_sin Ver_cmplx Let_cos Let_sin Let_cmplx;
+    clear TSin TCos TCmplx;
 end
 
 %% Temporal dynamics of the RCs
+Styles = {'-','--'};
+FreqIdxall = 6*(1:16)+1;
+OddFreqIdx = FreqIdxall(1:2:end);
+EvenFreqIdx = FreqIdxall(2:2:end);
+OEharms = [OddFreqIdx;EvenFreqIdx];
 
+logMARs.(Task{1}) = logMAR_letter;
+logMARs.(Task{2}) = logMAR_ver;
 
-%% functions
-function out_axx = MergeAxx(axxlist)
-out_axx = axxlist{1};
-    for C = 2:numel(axxlist)
-        out_axx = out_axx.MergeTrials(axxlist{C});
-    end
+for ts = 2:numel(Task) % for each task
+
+     for f = 1:numel(analHarms) % for each harmonics
+        if f==1
+            Flips = [1 -1]; 
+        else
+            Flips = [1 1];
+        end
+         
+        Wave_temp = decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Wave(:,1:NCOMP,:);
+        TWave = squeeze(mean(reshape(squeeze(Wave_temp(:,:,1:end-70)),[140,NCOMP,16,Condnum,Subnum-1]),3));% Reshape the waves
+        TWave(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Wave_temp(:,:,end-69:end)),[140,NCOMP,14,Condnum,1]),3));
+        Wave_all.(Task{ts}).(Harms{analHarms(f)}) = TWave*Flips(ts);
+        clear Wave_temp TWave;
+        
+        % separate even and odd
+        TCmplx = zeros(840,NCOMP,Condnum,Subnum);
+        fRCA=OEharms(f,:);
+        TCos = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,1:NCOMP,1:end-70)),[numel(fRCA),NCOMP,16,Condnum,Subnum-1]),3));% last subject has 14 trails
+        TSin = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,1:NCOMP,1:end-70)),[numel(fRCA),NCOMP,16,Condnum,Subnum-1]),3));
+
+        TCos(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,1:NCOMP,end-69:end)),[numel(fRCA),NCOMP,14,Condnum,1]),3));
+        TSin(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,1:NCOMP,end-69:end)),[numel(fRCA),NCOMP,14,Condnum,1]),3));
+        
+        TCmplx(fRCA,:,:,:) = Flips(ts)*TCos+(TSin*1i*Flips(ts));
+        TCmplx(end:-1:422,:,:,:) = conj(TCmplx(2:420,:,:,:));
+        RWave = ifft(conj(TCmplx),840,1);
+        Idxs = 0:140:840;
+        RWaveT =  RWave(Idxs(1)+1:Idxs(1+1),:,:,:) ;
+        
+        for i = 1:numel(Idxs)-1
+            RWaveT = RWaveT+RWave(Idxs(i)+1:Idxs(i+1),:,:,:);
+        end
+        RWave_all.(Task{ts}).(Harms{analHarms(f)}) = RWaveT/6*840/2;
+     end
+     
+    FIG = figure;
+    set(FIG,'unit','inch','position',[1 5 15 5])
+    set(FIG,'unit','inch','paperposition',[1 10 15 5])
+     for f = 1:numel(analHarms)
+         MWave = mean(RWave_all.(Task{ts}).(Harms{analHarms(f)}),4);
+         for cond = 1:5
+             S = subplot(2,5,cond+(f-1)*Condnum); 
+             
+             for c = 1:2
+                plot(2.381:2.381:140*2.381,MWave(:,c,cond),Styles{f},'Color',Cols(c,:),'linewidth',1.5);hold on;
+             end
+             
+             title(['LogMAR = ' num2str(round(logMARs.(Task{ts})(cond),2))],'fontsize',FS);
+             if cond==5 && f==1
+                 legend ('RC1','RC2')
+             end
+             if cond==1
+                 ylabel(Harms{f}(2:end),'fontsize',FS,'fontweight','bold');
+             end
+             xlim([0 333]);
+             ylim([-1.2 1.2]);%axis tight;
+             
+         end
+         %set(S,'position',get(S,'position')+[-.01 0 .02 0])
+     end
+     
+     print(FIG,['Figures/Temporal_RCA_' Task{ts} '_AverageAll'],'-r300','-dtiff');
 end
 

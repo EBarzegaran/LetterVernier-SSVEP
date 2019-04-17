@@ -1,11 +1,8 @@
-% The goal of this script is to
-% (1) Create a project with axx trial files
-% (2) Read in axx trial files from subjects
-% (3) Visualize and analyize temporal dynamics
 
 clear;
 clc;
 addpath(genpath('/Users/kohler/code/git/mrC'));
+
 %% Load Axx trial files
 
 PDiva_Path = '/Volumes/Denali_DATA1/Elham/EEG_Textscamble/';
@@ -29,103 +26,127 @@ clear axx_trialFiles axxStrct Cond Sub;
 %% RCA on individual subjects and prepare data for group level RCA
 %load(fullfile('ResultData','FFT_Trial_Data'));
 Freqs = 0:outData{1,1}.dFHz:outData{1,1}.dFHz*(outData{1,1}.nFr-1);
+Task = {'Letter','Vernier'};
 
 for Sub = 1:numel(SubIDs)
     % merge letter and vernier conditions for 
-    axx_Letter{Sub} = MergeAxx(outData(Sub,1:5));
-    [decompAxx_Letter{Sub},~,A_Letter{Sub},~] = mrC.SpatialFilters.PCA(axx_Letter{Sub},'freq_range',Freqs([7 19]));
-    axx_Letter{Sub} = MergeAxx(outData(Sub,1:5));
+    axx.(Task{1}){Sub} = MergeAxx(outData(Sub,1:5));
+    %[decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
      
-    axx_Vernier{Sub} = MergeAxx(outData(Sub,6:10));
-    [decompAxx_Vernier{Sub},~,A_Vernier{Sub},~] = mrC.SpatialFilters.PCA(axx_Vernier{Sub},'freq_range',Freqs([7 19]));
-    axx_Vernier{Sub} = MergeAxx(outData(Sub,6:10));
+    axx.(Task{2}){Sub} = MergeAxx(outData(Sub,6:10));
+    %[decompAxx_ind.(Task{2}){Sub},~,A_ind.(Task{2}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{2}){Sub},'freq_range',Freqs([7 19]));
 end
-%% time course
-% reconstruct the fourier
-clear Ver_cmplx Ver_recon_even Ver_recon_odd;
-FreqIdxall = 6*(1:16)+1;
-OddFreqIdx = FreqIdxall(1:2:end);
-EvenFreqIdx = FreqIdxall(2:2:end);
-Maxx_Letter = MergeAxx(axx_Letter);
-Letter_cmplx_odd = zeros(840,128,5,16);
-Letter_cmplx_even = zeros(840,128,5,16);
+
+clear Subjfolders
+
+%% time course of even and odd harmonics by reconstructing the fourier coefs
 elecnum= 128;
 Condnum = 5;
 Subnum = numel(SubIDs);
-Vinv = 1;
-Linv = 1;
 
-for FI = 1: numel(OddFreqIdx)
-    % odd harmanics
-    clear Letter_cos Letter_sin;
-    Letter_cos = squeeze(mean(reshape(squeeze(Maxx_Letter.Cos(OddFreqIdx(FI),:,1:end-70)),[elecnum,16,Condnum,Subnum-1]),2));% last subject has 14 trails
-    Letter_sin = squeeze(mean(reshape(squeeze(Maxx_Letter.Sin(OddFreqIdx(FI),:,1:end-70)),[elecnum,16,Condnum,Subnum-1]),2));
 
-    Letter_cos(:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx_Letter.Cos(OddFreqIdx(FI),:,end-69:end)),[elecnum,14,Condnum,1]),2));
-    Letter_sin(:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx_Letter.Sin(OddFreqIdx(FI),:,end-69:end)),[elecnum,14,Condnum,1]),2));
-    Letter_cmplx_odd(OddFreqIdx(FI),:,:,:) = Vinv*Letter_cos+(Letter_sin*1i*Vinv);
-    
-    % even harmaonics
-    clear Letter_cos Letter_sin;
-    Letter_cos = squeeze(mean(reshape(squeeze(Maxx_Letter.Cos(EvenFreqIdx(FI),:,1:end-70)),[elecnum,16,Condnum,Subnum-1]),2));% last subject has 14 trails
-    Letter_sin = squeeze(mean(reshape(squeeze(Maxx_Letter.Sin(EvenFreqIdx(FI),:,1:end-70)),[elecnum,16,Condnum,Subnum-1]),2));
+FreqIdxall = 6*(1:16)+1;
+Harms = {'Odd','Even','All'};
+OEFreqIdx = [FreqIdxall(1:2:end);FreqIdxall(2:2:end)];
+for ts = 1:numel(Task)
+    Maxx.(Task{ts}) = MergeAxx(axx.(Task{ts}));
+    for h = 1:2
+        TCmplx = zeros(840,128,5,16); % fft time window = 2*FS
+        TCos = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Cos(OEFreqIdx(h,:),:,1:end-70)),[size(OEFreqIdx,2),elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
+        TSin = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Sin(OEFreqIdx(h,:),:,1:end-70)),[size(OEFreqIdx,2),elecnum,16,Condnum,Subnum-1]),3));
 
-    Letter_cos(:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx_Letter.Cos(EvenFreqIdx(FI),:,end-69:end)),[elecnum,14,Condnum,1]),2));
-    Letter_sin(:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx_Letter.Sin(EvenFreqIdx(FI),:,end-69:end)),[elecnum,14,Condnum,1]),2));
-    Letter_cmplx_even(EvenFreqIdx(FI),:,:,:) = Vinv*Letter_cos+(Letter_sin*1i*Vinv);
-    
+        TCos(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Cos(OEFreqIdx(h,:),:,end-69:end)),[size(OEFreqIdx,2),elecnum,14,Condnum,1]),3));
+        TSin(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Sin(OEFreqIdx(h,:),:,end-69:end)),[size(OEFreqIdx,2),elecnum,14,Condnum,1]),3));
+        TCmplx(OEFreqIdx(h,:),:,:,:) = TCos+(TSin*1i);
+        TCmplx(end:-1:422,:,:,:) = conj(TCmplx(2:420,:,:,:));
+        RWave = ifft(conj(TCmplx),840,1);
+        Idxs = 0:140:840;
+        RWaveT =  RWave(Idxs(1)+1:Idxs(1+1),:,:,:) ;
+        
+        for i = 1:numel(Idxs)-1
+            RWaveT = RWaveT+RWave(Idxs(i)+1:Idxs(i+1),:,:,:);
+        end
+        RWave_all.(Task{ts}).(Harms{h}) = RWaveT/6*840/2;
+        clear RWaveT RWave TCos TSin TCmplx;
+    end
+    MWave = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Wave(:,:,1:end-70)),[140,elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
+    MWave(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Wave(:,:,end-69:end)),[140,elecnum,14,Condnum,1]),3));
+    RWave_all.(Task{ts}).(Harms{3}) = MWave;
 end
-Letter_cmplx_odd(end:-1:422,:,:,:) = conj(Letter_cmplx_odd(2:420,:,:,:));
-Letter_recon_odd = ifft(conj(Letter_cmplx_odd),840,1);
+%% load stim images
+load('../Stimuli/SloanTextScrambles_devel.mat','img');
+load('../Stimuli/Vernier_Example.mat');
 
-Letter_cmplx_even(end:-1:422,:,:,:) = conj(Letter_cmplx_even(2:420,:,:,:));
-Letter_recon_even = ifft(conj(Letter_cmplx_even),840,1);
-for i = 1:(840/140)
-    Letter_recon_oddM(:,:,:,:,i) = Letter_recon_odd((i-1)*140+1:i*140,:,:,:);
-    Letter_recon_evenM(:,:,:,:,i) = Letter_recon_even((i-1)*140+1:i*140,:,:,:);
-end
-Letter_recon_oddM = mean(Letter_recon_oddM,5);
-Letter_recon_evenM = mean(Letter_recon_evenM,5);
-% all wave
-MWave = squeeze(mean(reshape(squeeze(Maxx_Letter.Wave(:,:,1:end-70)),[140,elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
-MWave(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx_Letter.Wave(:,:,end-69:end)),[140,elecnum,14,Condnum,1]),3));
-
-clear Letter_cmplx_even Letter_cmplx_odd Letter_cos Letter_sin Letter_recon_even Letter_recon_odd
-%%
-Condnum = 5;
-vidfile = VideoWriter(['Figures/Letter_Cond' num2str(Condnum) '.mp4'],'MPEG-4');
-vidfile.FrameRate = 10;
-open(vidfile);
-FIG = figure;
-set(FIG,'unit','inch','position',[5 5 15 5])
-M1 = max(max(abs(squeeze(mean(Letter_recon_evenM(:,:,Condnum,1:16),4)))));
-M2 = max(max(abs(squeeze(mean(Letter_recon_oddM(:,:,Condnum,1:16),4)))));
-M3 = max(max(abs(squeeze(mean(MWave(:,:,Condnum,:),4)))));
-for i = 1:140
-    subplot(1,3,1);
-    mrC.plotOnEgi(squeeze(mean(Letter_recon_evenM(i,:,Condnum,1:16),4))*-1); colormap('jet'); caxis([-M1 M1]);
-    title('Even harmonics','fontsize',12)
-    subplot(1,3,2);
-     mrC.plotOnEgi(squeeze(mean(Letter_recon_oddM(i,:,Condnum,1:16),4))*-1); colormap('jet'); caxis([-M2 M2]);
-    title('Odd harmonics','fontsize',12)
-    h = text(-.5,-1.5,['Time = ' num2str(round(2.381*i,1)) ' ms'],'fontsize',12);
-    subplot(1,3,3);
-    mrC.plotOnEgi(squeeze(mean(MWave(i,:,Condnum,:),4))*-1); colormap('jet'); caxis([-M3 M3]);
-    title('all harmonics','fontsize',12)
-    F(i)= getframe(gcf);
-    writeVideo(vidfile,F(i));
-    pause(.25)
-    delete(h)
-end
-
-close(vidfile);
-close all
-%%
-
-%% functions
-function out_axx = MergeAxx(axxlist)
-out_axx = axxlist{1};
-    for C = 2:numel(axxlist)
-        out_axx = out_axx.MergeTrials(axxlist{C});
+Img.(Task{1}) = double(squeeze(img(:,:,1,5,1,:)));
+Img.(Task{2}) = cat(3,Im1,Im2);
+clear Im1 Im2 img;
+%% Prepare videos
+ImNames.(Task{1})={'Letters','Scrambled Letters'};
+ImNames.(Task{2})={'Uniform','Segmented'};
+Generatevids = true;
+StimPlot = 0;
+if Generatevids
+    for ts = 1:numel(Task)
+        for cond = 1:Condnum
+            if StimPlot
+                vidfile = VideoWriter(['Figures/' Task{ts} '_Cond' num2str(cond) '_Stim.mp4'],'MPEG-4');
+            else
+                vidfile = VideoWriter(['Figures/' Task{ts} '_Cond' num2str(cond) '.mp4'],'MPEG-4');
+            end
+            vidfile.FrameRate = 10;
+            open(vidfile);
+            FIG = figure;
+            if StimPlot
+                set(FIG,'unit','inch','position',[5 5 10 10]);
+            else
+                set(FIG,'unit','inch','position',[5 5 10 5])
+            end
+                
+            for h = 1:numel(Harms)
+                M(h) = max(max(abs(squeeze(mean(RWave_all.(Task{ts}).(Harms{h})(:,:,cond,:),4)))));
+            end
+            for i = 1:140
+                for h = 1:2%numel(Harms)
+                    subplot(StimPlot+1,2,h);
+                    mrC.plotOnEgi(squeeze(mean(RWave_all.(Task{ts}).(Harms{h})(i,:,cond,:),4))*-1); colormap('jet'); caxis([-M(h) M(h)]);
+                    T = title([Harms{h} ' harmonics'],'fontsize',12);
+                    if h==2, H = text(-2.5,-1.8,['Time = ' num2str(round(2.381*i,1)) ' ms'],'fontsize',14); end
+                end
+                % plot stimulus
+                if StimPlot
+                    S = subplot(2,1,2);
+                    imshow(Img.(Task{ts})(:,:,ceil(i/70))); 
+                    axis equal;
+                    set(S,'position',get(S,'position')+[0.02 0 -.08 -.08])
+                    title('Stimulus','fontsize',14)
+                    
+                    % plot time points
+                    axes('Position',[0.1 0.42 0.85 0.1],'next','add'); axis off               
+                    line([0 .45],[.5 .5],'linewidth',10,'color',[.2 .4 .4])               
+                    line([.45 .9],[.5 .5],'linewidth',10,'color',[.5 .5 .8])
+                    A = annotation('rectangle',[(i/140)*.85+.1 .44 .01 .05],'FaceColor','k','FaceAlpha',1);
+                    axes('Position',[0.1 0.40 0.85 0.1],'next','add'); axis off
+                    text(.2,.3,ImNames.(Task{ts}){1},'fontsize',14,'color',[.2 .4 .4]);
+                    text(.6,.3,ImNames.(Task{ts}){2},'fontsize',14,'color',[.5 .5 .8]);
+                else
+                    % plot time points
+                    axes('Position',[0.1 0.1 0.85 0.1],'next','add'); axis off               
+                    line([0 .45],[.5 .5],'linewidth',10,'color',[.2 .4 .4])               
+                    line([.45 .9],[.5 .5],'linewidth',10,'color',[.5 .5 .8])
+                    A = annotation('rectangle',[(i/140)*.85+.1 .115 .01 .05],'FaceColor','k','FaceAlpha',1);
+                    axes('Position',[0.1 0.07 0.85 0.1],'next','add'); axis off
+                    text(.2,.3,ImNames.(Task{ts}){1},'fontsize',14,'color',[.2 .4 .4]);
+                    text(.65,.3,ImNames.(Task{ts}){2},'fontsize',14,'color',[.5 .5 .8]);
+                end
+                % save the frame
+                F(i)= getframe(gcf);
+                writeVideo(vidfile,F(i));
+                pause(.01)
+                delete(H)
+                delete(A)
+            end
+            close(vidfile);
+            close all
+        end
     end
 end

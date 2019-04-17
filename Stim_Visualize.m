@@ -30,6 +30,7 @@ for i = 1:2:numel(BarIdx1)
     end
 end
 
+save('../Stimuli/Vernier_Example.mat','Im1','Im2');
 %%
 
 FS = 12;
