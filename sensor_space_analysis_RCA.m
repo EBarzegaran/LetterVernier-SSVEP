@@ -107,16 +107,16 @@ clear decompAxx_Letter_all decompAxx_Vernier_all A_Vernier_all A_Letter_all D_Le
 %SELECT the harmonic to do analysis 
 analHarms = [1 2];
 Harms = {'H1F1','H2F1','H3F1','H4F1'};
-RedoRCA = false;
+RedoRCA = true;
 % Group Level RCA
 if RedoRCA || ~exist(fullfile('ResultData','GroupRCA.mat'),'file')
     for f = 1:numel(analHarms)
         fRCA = Finds(analHarms(f));
         for ts = 1:numel(Task)
-            [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),~,A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)})] = mrC.SpatialFilters.RCA(MergeAxx(axx.(Task{ts})),'freq_range',Freqs(fRCA));
+            [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),W_all.(Task{ts}).(Harms{analHarms(f)}),A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)})] = mrC.SpatialFilters.RCA(MergeAxx(axx.(Task{ts})),'freq_range',Freqs(fRCA));
         end
     end
-    save(fullfile('ResultData','GroupRCA'),'decompAxx_all','A_all','D_all','-v7.3');
+    save(fullfile('ResultData','GroupRCA'),'decompAxx_all','W_all','A_all','D_all','-v7.3');
 else
     load(fullfile('ResultData','GroupRCA.mat'));
 end

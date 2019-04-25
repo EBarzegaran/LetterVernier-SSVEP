@@ -7,6 +7,7 @@ path2 = '/Users/kohler/code/git/gardner/mrTools/mrUtilities/mrFlatMesh';
 addpath(genpath(path2));
 %% Read the inverses
 Path = '/Volumes/svndl/mrC_Projects/VernierLetters/source';
+%InvName = 'mneInv_bem_gcv_regu_F1_1_2_3_4_wangkgsROIsCorr_DepthWeight.inv';
 InvName = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
 [Inverses,SubIDInv] = mrC.Simulate.ReadInverses(Path,InvName);
 % Read  morph maps
@@ -90,36 +91,25 @@ figure,
 subplot(2,1,1),imagesc(SMdata);
 subplot(2,1,2),plot(Times(MI(1:2:end)));xlim([1 31])
 set(gca,'xtick',1:32,'xticklabels',ROILabel(1:2:end)); xtickangle(90)
-%%
-figure,mrC.Simulate.VisualizeSourceRoi2('nl-0014',[],'Wang',45:50)
-figure,mrC.Simulate.VisualizeSourceRoi2('nl-0014',[],'kgs',[],[],'L')
 
-%%
-Temp = cat(3,InvROIs{:});
-FIG = figure;
-for i =1:30
-   subplot(5,6,i),mrC.plotOnEgi(mean(mean(Temp(:,(i*2)-1:i*2,:),3),2)); axis tight
-   title(ROILabel{(i*2)-1})
-end
-set(FIG,'unit','inch','position',[5 5 20 20]);
 %% convert to source space
-for s = 1:numel(SubIDInv)
-    SourceWaveT(:,:,s) = squeeze(Test_Wave(:,:,s))*InvMapped{s}.';
-end
-
-% videos 
-cond = 3;
-M = max(max(abs(mean(SourceWaveT(:,:,:),3))));
-vidfile = VideoWriter(['Figures/' Task{2} '_Cond' num2str(cond) '_Source.mp4'],'MPEG-4');
-vidfile.FrameRate = 10;
-open(vidfile);
-for i = 1:140
-    figure; mrC.Simulate.VisualizeSourceData('nl-0014',mean(SourceWaveT(i,:,:),3),[],'coolhotcortex');
-    caxis([-M/2 M/2]);
-    pause(.1);
-    F(i)= getframe(gcf);
-    writeVideo(vidfile,F(i));
-    close;
-end
-close(vidfile);
-close all
+% for s = 1:numel(SubIDInv)
+%     SourceWaveT(:,:,s) = squeeze(Test_Wave(:,:,s))*InvMapped{s}.';
+% end
+% 
+% % videos 
+% cond = 3;
+% M = max(max(abs(mean(SourceWaveT(:,:,:),3))));
+% vidfile = VideoWriter(['Figures/' Task{2} '_Cond' num2str(cond) '_Source.mp4'],'MPEG-4');
+% vidfile.FrameRate = 10;
+% open(vidfile);
+% for i = 1:140
+%     figure; mrC.Simulate.VisualizeSourceData('nl-0014',mean(SourceWaveT(i,:,:),3),[],'coolhotcortex');
+%     caxis([-M/2 M/2]);
+%     pause(.1);
+%     F(i)= getframe(gcf);
+%     writeVideo(vidfile,F(i));
+%     close;
+% end
+% close(vidfile);
+% close all

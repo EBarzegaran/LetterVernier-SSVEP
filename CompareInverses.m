@@ -160,3 +160,12 @@ for Hemi = 1:2% 1 for left  and 2 for right
 close;
 end
 
+%% make scalp plots
+
+Temp = cat(3,ScalpData{:});
+FIG = figure;
+for i =1:30
+   subplot(5,6,i),mrC.plotOnEgi(mean(mean(Temp((i*2)-1:(i*2),:,:),1),3)); axis tight
+   title(ROILabel{(i*2)}(1:end-1))
+end
+set(FIG,'unit','inch','position',[5 5 20 20]);

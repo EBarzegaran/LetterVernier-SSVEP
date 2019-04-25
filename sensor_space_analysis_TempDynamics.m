@@ -43,35 +43,40 @@ clear Subjfolders
 elecnum= 128;
 Condnum = 5;
 Subnum = numel(SubIDs);
-
+RedoAnalys = false;
 
 FreqIdxall = 6*(1:16)+1;
 Harms = {'Odd','Even','All'};
 OEFreqIdx = [FreqIdxall(1:2:end);FreqIdxall(2:2:end)];
-for ts = 1:numel(Task)
-    Maxx.(Task{ts}) = MergeAxx(axx.(Task{ts}));
-    for h = 1:2
-        TCmplx = zeros(840,128,5,16); % fft time window = 2*FS
-        TCos = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Cos(OEFreqIdx(h,:),:,1:end-70)),[size(OEFreqIdx,2),elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
-        TSin = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Sin(OEFreqIdx(h,:),:,1:end-70)),[size(OEFreqIdx,2),elecnum,16,Condnum,Subnum-1]),3));
+if ~exist(fullfile('ResultData','EvenOddWaves.mat'),'file') || RedoAnalys
+    for ts = 1:numel(Task)
+        Maxx.(Task{ts}) = MergeAxx(axx.(Task{ts}));
+        for h = 1:2
+            TCmplx = zeros(840,128,5,16); % fft time window = 2*FS
+            TCos = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Cos(OEFreqIdx(h,:),:,1:end-70)),[size(OEFreqIdx,2),elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
+            TSin = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Sin(OEFreqIdx(h,:),:,1:end-70)),[size(OEFreqIdx,2),elecnum,16,Condnum,Subnum-1]),3));
 
-        TCos(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Cos(OEFreqIdx(h,:),:,end-69:end)),[size(OEFreqIdx,2),elecnum,14,Condnum,1]),3));
-        TSin(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Sin(OEFreqIdx(h,:),:,end-69:end)),[size(OEFreqIdx,2),elecnum,14,Condnum,1]),3));
-        TCmplx(OEFreqIdx(h,:),:,:,:) = TCos+(TSin*1i);
-        TCmplx(end:-1:422,:,:,:) = conj(TCmplx(2:420,:,:,:));
-        RWave = ifft(conj(TCmplx),840,1);
-        Idxs = 0:140:840;
-        RWaveT =  RWave(Idxs(1)+1:Idxs(1+1),:,:,:) ;
-        
-        for i = 1:numel(Idxs)-1
-            RWaveT = RWaveT+RWave(Idxs(i)+1:Idxs(i+1),:,:,:);
+            TCos(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Cos(OEFreqIdx(h,:),:,end-69:end)),[size(OEFreqIdx,2),elecnum,14,Condnum,1]),3));
+            TSin(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Sin(OEFreqIdx(h,:),:,end-69:end)),[size(OEFreqIdx,2),elecnum,14,Condnum,1]),3));
+            TCmplx(OEFreqIdx(h,:),:,:,:) = TCos+(TSin*1i);
+            TCmplx(end:-1:422,:,:,:) = conj(TCmplx(2:420,:,:,:));
+            RWave = ifft(conj(TCmplx),840,1);
+            Idxs = 0:140:840;
+            RWaveT =  RWave(Idxs(1)+1:Idxs(1+1),:,:,:) ;
+
+            for i = 1:numel(Idxs)-1
+                RWaveT = RWaveT+RWave(Idxs(i)+1:Idxs(i+1),:,:,:);
+            end
+            RWave_all.(Task{ts}).(Harms{h}) = RWaveT/6*840/2;
+            clear RWaveT RWave TCos TSin TCmplx;
         end
-        RWave_all.(Task{ts}).(Harms{h}) = RWaveT/6*840/2;
-        clear RWaveT RWave TCos TSin TCmplx;
+        MWave = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Wave(:,:,1:end-70)),[140,elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
+        MWave(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Wave(:,:,end-69:end)),[140,elecnum,14,Condnum,1]),3));
+        RWave_all.(Task{ts}).(Harms{3}) = MWave;
     end
-    MWave = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Wave(:,:,1:end-70)),[140,elecnum,16,Condnum,Subnum-1]),3));% last subject has 14 trails
-    MWave(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Maxx.(Task{ts}).Wave(:,:,end-69:end)),[140,elecnum,14,Condnum,1]),3));
-    RWave_all.(Task{ts}).(Harms{3}) = MWave;
+    save(fullfile('ResultData','EvenOddWaves.mat'),'RWave_all','SubIDs');
+else
+    load(fullfile('ResultData','EvenOddWaves.mat'));
 end
 %% load stim images
 load('../Stimuli/SloanTextScrambles_devel.mat','img');
@@ -108,7 +113,7 @@ if Generatevids
             for i = 1:140
                 for h = 1:2%numel(Harms)
                     subplot(StimPlot+1,2,h);
-                    mrC.plotOnEgi(squeeze(mean(RWave_all.(Task{ts}).(Harms{h})(i,:,cond,:),4))*-1); colormap('jet'); caxis([-M(h) M(h)]);
+                    mrC.plotOnEgi(squeeze(mean(RWave_all.(Task{ts}).(Harms{h})(i,:,cond,:),4))); colormap('jet'); caxis([-M(h) M(h)]);
                     T = title([Harms{h} ' harmonics'],'fontsize',12);
                     if h==2, H = text(-2.5,-1.8,['Time = ' num2str(round(2.381*i,1)) ' ms'],'fontsize',14); end
                 end
