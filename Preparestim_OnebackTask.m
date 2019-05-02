@@ -20,8 +20,8 @@ MAR = 10.^logMAR;
 MAR2 = atan((4/3)*tan(MAR/(60*180)*pi))*60*180/pi;
 logMAR2 = log10(MAR2); 
 % Or
-screenHeightCm = 31; % Monitor Upstairs
-screenWidthCm = 55;
+screenHeightCm = 30.5; % Monitor Upstairs
+screenWidthCm = 54.5;
 
 pixCM = screenHeightPix/screenHeightCm;
 logMAR_letter = log10(atan((HCharPix)/pixCM/150/5)*60*180/pi);
