@@ -15,7 +15,7 @@ img =  reshape(img,size(img,1),size(img,2),1,size(img,3),size(img,4));
 save('../Stimuli/Sloan_scrambled_768x1440.mat','img','ObjectVerticalSizePix');
 
 %%
-HCharPix =  hCharPix(1:10);
+HCharPix =  round(hCharPix(1:10)*53/71); % correct for the mistake in the SloanTextScrambles_devel.mat letter pixels.
 MAR = 10.^logMAR;
 MAR2 = atan((4/3)*tan(MAR/(60*180)*pi))*60*180/pi;
 logMAR2 = log10(MAR2); 
