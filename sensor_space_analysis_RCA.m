@@ -26,7 +26,7 @@ end
 clear axx_trialFiles axxStrct Cond Sub;
 %save(fullfile('ResultData','FFT_Trial_Data'),'outData','SubIDs');
 
-%% RCA on individual subjects and prepare data for group level RCA
+%% PCA on individual subjects and prepare data for group level RCA
 %load(fullfile('ResultData','FFT_Trial_Data'));
 Freqs = 0:outData{1,1}.dFHz:outData{1,1}.dFHz*(outData{1,1}.nFr-1);
 Task = {'Letter','Vernier'};
@@ -34,7 +34,7 @@ Task = {'Letter','Vernier'};
 for Sub = 1:numel(SubIDs)
     % merge letter and vernier conditions for 
     axx.(Task{1}){Sub} = MergeAxx(outData(Sub,1:5));
-    [decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
+    [decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.RCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
      
     axx.(Task{2}){Sub} = MergeAxx(outData(Sub,6:10));
     [decompAxx_ind.(Task{2}){Sub},~,A_ind.(Task{2}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{2}){Sub},'freq_range',Freqs([7 19]));
@@ -53,8 +53,8 @@ logMAR = [logMAR_letter logMAR_ver];
 % figure params
 FS = 10;
 SizeInc = .05;
-if false
-    for Sub = 17: numel(Sublist)
+if true
+    for Sub = 1: numel(Sublist)
         for i = 1:numel(Finds)%4
             FIG = figure;
             set(FIG,'unit','inch','position',[17 10 9 3.37])

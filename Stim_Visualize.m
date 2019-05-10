@@ -18,44 +18,50 @@ HBarSize = round((pixARC)/(SpatFreq*2));
 VBarnum = round(ImPixX/(pixARC));% How many pixels for one vertical bar (Vernier displacement)
 VBarSize = round((pixARC));
 
-Im1 = zeros(ImPixX,ImPixY);
-Im2 = zeros(ImPixX,ImPixY);
 
 % Vernier misalignment condition 4
-MisAarcmin = 4;
-misApix = round(MisAarcmin/60*pixARC);
+MisAarcmin = [1.4 2 2.8 4 5.6];
+%Im = zeros(ImPixX,ImPixY,numel(MisAarcmin),2);
 
-%% Bar information
 
-BarIdxY = [1 round(HBarSize/2:HBarSize:ImPixY) ImPixY];% Indices of Y with a half a bar shift up
-BarIdxX = [round(1:VBarSize:ImPixX) ImPixX];% Indices of Y with a half a bar shift up
-BarIdxYof = [1 round(HBarSize/2-misApix:HBarSize:ImPixY) ImPixY];
-for x = 1:numel(BarIdxX)-1
-    if mod(x,2)==1
-        for y = 1:2:numel(BarIdxY)-1
-            Im2(BarIdxX(x):BarIdxX(x+1),BarIdxY(y):BarIdxY(y+1)) = 1;
-            Im1(BarIdxX(x):BarIdxX(x+1),BarIdxY(y):BarIdxY(y+1)) = 1;
-        end
-    else
-        for y = 1:2:numel(BarIdxY)-1
-            Im2(BarIdxX(x):BarIdxX(x+1),BarIdxYof(y):BarIdxYof(y+1)) = 1;
-            Im1(BarIdxX(x):BarIdxX(x+1),BarIdxY(y):BarIdxY(y+1)) = 1;
+for VI = 1:numel(MisAarcmin)
+    Im1 = zeros(ImPixX,ImPixY);
+    Im2 = zeros(ImPixX,ImPixY);
+    misApix = round(MisAarcmin(VI)/60*pixARC);
+
+    BarIdxY = [1 round(HBarSize/2:HBarSize:ImPixY) ImPixY];% Indices of Y with a half a bar shift up
+    BarIdxX = [round(1:VBarSize:ImPixX) ImPixX];% Indices of Y with a half a bar shift up
+    BarIdxYof = [1 round(HBarSize/2-misApix:HBarSize:ImPixY) ImPixY];
+    for x = 1:numel(BarIdxX)-1
+        if mod(x,2)==1
+            for y = 1:2:numel(BarIdxY)-1
+                Im2(BarIdxX(x):BarIdxX(x+1),BarIdxY(y):BarIdxY(y+1)) = 1;
+                Im1(BarIdxX(x):BarIdxX(x+1),BarIdxY(y):BarIdxY(y+1)) = 1;
+            end
+        else
+            for y = 1:2:numel(BarIdxY)-1
+                Im2(BarIdxX(x):BarIdxX(x+1),BarIdxYof(y):BarIdxYof(y+1)) = 1;
+                Im1(BarIdxX(x):BarIdxX(x+1),BarIdxY(y):BarIdxY(y+1)) = 1;
+            end
         end
     end
+    Im2 = Im2';
+    Im1 = Im1';
+    
+    Im(:,:,VI,1) = Im1;
+    Im(:,:,VI,2) = Im2;
 end
-Im2 = Im2';
-Im1 = Im1';
-
-save('../Stimuli/Vernier_Example.mat','Im1','Im2');
+save('Stimuli/Vernier_Stim.mat','Im');
 %%
-load('../Stimuli/SloanTextScrambles_devel.mat');
+load('Stimuli/SloanTextScrambles_devel.mat');
 img = squeeze(img);
 
+VI = 4;
 FS = 12;
 Fig_Ver = figure;
 set(Fig_Ver,'unit','inch','Position',[5 5 6 5.7],'color','w','PaperPosition',[5 5 6 5.7]);
 
-subplot(2,2,1),imagesc(Im1(1:768,1:768)); 
+subplot(2,2,1),imagesc(Im(1:768,1:768,VI,1)); 
 colormap('gray');
 set(gca,'xtick',[],'ytick',[])
 xlabel('Stage 1','fontsize',FS)
@@ -63,7 +69,7 @@ xlabel('Stage 1','fontsize',FS)
 T = title('Vernier displacement at 3 Hz','fontsize',FS);
 set(T,'position',get(T,'position')+[650 -20 0])
 
-subplot(2,2,2),imagesc(Im2(1:768,1:768));
+subplot(2,2,2),imagesc(Im(1:768,1:768,VI,2));
 set(gca,'xtick',[],'ytick',[])
 xlabel('Stage 2','fontsize',FS)
 

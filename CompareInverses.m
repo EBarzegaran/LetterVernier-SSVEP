@@ -21,7 +21,7 @@ ROILabel = Wangkgs_RoiList{1}.getFullNames('noatlas');
 %% Generate Resolution matrices
 ResultPath = 'ResultData';
 FilePath = fullfile(ResultPath,'LocalizationExampleData_Paper.mat');
-do_new_data_generation = true;
+do_new_data_generation = false;
 
 if ~exist(FilePath,'file') || do_new_data_generation
     [CrossTalk1,Error1,ROISource1,~,~,~] = mrC.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
@@ -45,15 +45,20 @@ CT2 = (cat(3,CrossTalk2{:}));%CT2 = (CT2(1:2:end,1:2:end,:)+CT2(2:2:end,2:2:end,
 for i = 1:2
     eval(['CTM1 = mean(cat(3,CrossTalk' num2str(i) '{:}),3);']);
     S = subplot(1,2,i);
-    eval(['imagesc(abs(mean(CT' num2str(i) ',3)));']);
+    eval(['imagesc((mean(CT' num2str(i) ',3)));']);
     colormap(jmaColors('coolhot'));
-    colormap('gray')
+    %colormap('gray')
     %caxis([-max(abs(CTMM(:))) max(abs(CTMM(:)))]);
-    caxis([0 1]);
+    caxis([-1 1]);
     
     set(gca,'ytick',1:numel(ROILabel),'yticklabel',ROILabel,'xtick',1:numel(ROILabel),'xticklabel',ROILabel,'fontsize',10);
     if exist('xtickangle'), xtickangle(90); end
     xlabel('receiving ROI','fontsize',12);
+    if i==1
+        title('MN+FACE');
+    else
+        title('WMN_FACE');
+    end
 end
 
 

@@ -1,5 +1,5 @@
 %% estimate the logMAR for viewing distance of 150 cm instead of 200 cm
-load('../Stimuli/SloanTextScrambles_devel.mat');
+load('Stimuli/SloanTextScrambles_devel.mat');
 
 %%
 ObjectVerticalSizePix = hCharPix;%[11 hCharPix(1:9)];
@@ -8,11 +8,11 @@ IMG = img;
 img = squeeze(IMG(:,:,:,:,:,1));
 img = permute(img,[1 2 4 3]);
 img =  reshape(img,size(img,1),size(img,2),1,size(img,3),size(img,4));
-save('../Stimuli/Sloan_intact_768x1440.mat','img','ObjectVerticalSizePix');
+save('Stimuli/Sloan_intact_768x1440.mat','img','ObjectVerticalSizePix');
 img = squeeze(IMG(:,:,:,:,:,2));
 img = permute(img,[1 2 4 3]);
 img =  reshape(img,size(img,1),size(img,2),1,size(img,3),size(img,4));
-save('../Stimuli/Sloan_scrambled_768x1440.mat','img','ObjectVerticalSizePix');
+save('Stimuli/Sloan_scrambled_768x1440.mat','img','ObjectVerticalSizePix');
 
 %%
 HCharPix =  round(hCharPix(1:10)*53/71); % correct for the mistake in the SloanTextScrambles_devel.mat letter pixels.

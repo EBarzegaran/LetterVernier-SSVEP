@@ -1,9 +1,46 @@
 clear; clc;
-load('../Stimuli/SloanTextScrambles_1920x1024_8to80.mat');
+addpath(genpath('/Users/kohler/code/git/stimulus_assessment'))
+
+load('Stimuli/SloanTextScrambles_devel.mat','img');
+load('Stimuli/Vernier_Stim.mat');
+img_Letter = squeeze(img(:,:,:,1:2:end,:,:));
+img_Vernier = Im;
+clear Im img;
+%%
+
+img_Vernier_input = img_Vernier(1:768,1:768,:,:);
+img_Letter_input = img_Letter(1:768,313:1080,:,:,:);
+
+exp_fov =  12;%8.5;
+
+%[resp_vals_V, exampleV] = soc_assessment(img_Vernier_input(1:768,1:768,1,1), exp_fov,2);
+
+for cond = 1:5
+    for ts = 1:2
+        %[resp_vals_L{cond,ts}, exampleL] = soc_assessment(squeeze(img_Letter_input(1:400,1:400,cond,:,ts)), exp_fov,1);
+        [resp_vals_V{cond,ts}, exampleV] = soc_assessment(squeeze(img_Vernier_input(1:400,1:400,1,2)), exp_fov,1);
+    end
+end
+
+%% Letters
+RA = cellfun(@(x) mean(x),resp_vals_L,'uni',false);
+RA = arrayfun(@(x) cat(1,RA{:,x}),1:2,'uni',false);
+
+figure,
+subplot(1,3,1);bar(RA{1}');
+subplot(1,3,2);bar(RA{2}');
+subplot(1,3,3);bar(abs(RA{1}'-RA{2}'));ylim([0 .9])
+
+%% Vernier
+%RA = cellfun(@(x) mean(x),resp_vals_V,'uni',false);
+RA = arrayfun(@(x) cat(1,resp_vals_V{:,x}),1:2,'uni',false);
+
+figure,
+subplot(1,3,1);bar(RA{1}');
+subplot(1,3,2);bar(RA{2}');
+subplot(1,3,3);bar(abs(RA{1}'-RA{2}'));ylim([0 .9])
 
 %%
-img = squeeze(img);
-
 % for i = 1:size(img,3)
 %     i
 %     for j = 1:size(img,4)
