@@ -13,6 +13,10 @@ Subjfolders = subfolders(PDiva_Path,0);
 Subjfolders =  Subjfolders(cellfun(@(x) ~isempty(x),strfind(Subjfolders,'nl-')));
 SubIDs = cellfun(@(x) x(1:7),Subjfolders,'UniformOutput',false);
 
+excludes = {'nl-1850','nl-1853','nl-1878'};%,'nl-1861'};
+[SubIDs, Ind] = setdiff(SubIDs,excludes);
+Subjfolders = Subjfolders(Ind);
+
 for Sub = 1:numel(Subjfolders)
 axx_trialFiles = subfiles(fullfile(PDiva_Path,Subjfolders{Sub},'Exp_MATL_HCN_128_Avg','Axx*_trials.mat'),1);
     for Cond=1:length(axx_trialFiles)
@@ -42,6 +46,8 @@ nFC_Idx{2} = nF2 * f2Idx +1;
 %%
 Condnum = size(outData,2);
 SubNames = SubIDs;SubNames{end+1} = 'Average_all';
+Task = {'FlippedLetter','ColorTask','Fixation'};
+
 
 for Sub = 1: numel(Sublist)
     FIG = figure;
@@ -63,17 +69,17 @@ for Sub = 1: numel(Sublist)
             if Cond ==1
                 if f==1
                     TX1 =text(-1.8,-.6,'nF1 clean','fontsize',14,'rotation',90);
-                    title('Letter Flip Task')    
+                    title(Task{1})    
                 else
                     TX2 =text(-1.8,-.3,'nF2','fontsize',14,'rotation',90);
                 end
             elseif Cond==2
                 if f==1
-                    title('Color Task')
+                    title(Task{2})
                 end
             elseif Cond==3
                 if f==1
-                    title('Fixation - No Taks')
+                    title(Task{3})
                 end
                 for c = 1:Condnum
                     subplot(2,size(outData,2),c+(f-1)*Condnum), caxis([0 max(Lim(:,f))])
@@ -90,16 +96,20 @@ end
    
 %%
 Condnum = size(outData,2);
-Task = {'FlipLetter','ColorTask','Fixation'};
 Subnum = numel(SubIDs);
 elecnum = 128;
-Harms = {'nF1C','nF2'};
+Harms = {'nF1C','nF2','all'};
 
+nF1C = [1 2 4 5 ]; % nF1 clean harmonics 2 4 5 7 8 
+nF2 = [1 2 ]; % nF2 harmonics 2 3 
 
+nFC_Idx{1} = nF1C * f1Idx +1;
+nFC_Idx{2} = nF2 * f2Idx +1;
+nFC_Idx{3} = [nFC_Idx{1} nFC_Idx{2}];
 
 for ts = 1:3
     Maxx{ts} = MergeAxx(outData(:,ts));
-    for h = 1:2
+    for h = 1:3
         TCmplx = zeros(840,128,Subnum); % fft time window = 2*FS
         TCos = squeeze(mean(reshape(squeeze(Maxx{ts}.Cos(nFC_Idx{h},:,:)),[numel(nFC_Idx{h}),elecnum,40,Subnum]),3));% last subject has 14 trails
         TSin = squeeze(mean(reshape(squeeze(Maxx{ts}.Sin(nFC_Idx{h},:,:)),[numel(nFC_Idx{h}),elecnum,40,Subnum]),3));
@@ -115,27 +125,31 @@ for ts = 1:3
     end
 end
 
+
 %% make the video
 Time = (1:420)*2.38095;
 FIG2 = figure;
-set(FIG2,'unit','inch','Paperposition',[2 2 12 6],'position',[5 4 12 6])
+set(FIG2,'unit','inch','Paperposition',[2 2 12 12],'position',[5 4 12 12])
 Wave(:,:,1) = RWave_all.(Task{1}).(Harms{1});
 Wave(:,:,2) = RWave_all.(Task{2}).(Harms{1});
 Wave(:,:,3) = RWave_all.(Task{3}).(Harms{1});
 Wave(:,:,4) = RWave_all.(Task{1}).(Harms{2});
 Wave(:,:,5) = RWave_all.(Task{2}).(Harms{2});
 Wave(:,:,6) = RWave_all.(Task{3}).(Harms{2});
+Wave(:,:,7) = RWave_all.(Task{1}).(Harms{3});
+Wave(:,:,8) = RWave_all.(Task{2}).(Harms{3});
+Wave(:,:,9) = RWave_all.(Task{3}).(Harms{3});
 
-vidfile = VideoWriter(['Figures/EXPERIMENT2/Average_timecourse.mp4'],'MPEG-4');
+vidfile = VideoWriter(['Figures/EXPERIMENT2/Average_timecourse-.mp4'],'MPEG-4');
 vidfile.FrameRate = 10;
 open(vidfile);
 
 for i = 1:420
-    for sub = 1:6
-        subplot(2,3,sub)
-        mrC.plotOnEgi(Wave(i,:,sub));
+    for sub = 1:9
+        subplot(3,3,sub)
+        mrC.plotOnEgi(Wave(i,:,sub));axis tight
         colormap('jet');
-        caxis([-max(max(Wave(:,:,sub))) max(max(Wave(:,:,sub)))]/1.2);
+        caxis([-max(max(abs(Wave(:,:,sub)))) max(max(abs(Wave(:,:,sub))))]/1.2);
         if sub ==1
             title('Letter Flip Task')
             if exist('TX1')
@@ -147,16 +161,25 @@ for i = 1:420
         elseif sub==3
             title('Fixation-No Task')
         elseif sub==5
-            if exist('TX')
-                delete(TX)
-            end
-            TX =text(-0.8,-1.8,['time = ' num2str(round(Time(i),2))],'fontsize',14);
+            
+            
         elseif sub==4
             if exist('TX2')
                 delete(TX2)
             end
             TX2 =text(-1.8,-.3,'nF2','fontsize',14,'rotation',90);
+        elseif sub==7
+            if exist('TX3')
+                delete(TX3)
+            end
+            TX3 =text(-1.8,-.3,'all','fontsize',14,'rotation',90);
+        elseif sub==8
+            if exist('TX')
+                delete(TX)
+            end
+            TX =text(-0.8,-1.8,['time = ' num2str(round(Time(i),2))],'fontsize',14);
         end
+            
     end
     
     pause(.01)
@@ -225,7 +248,60 @@ for ts = 1:3
     close all;
 end
 
+%% RCA analysis on individuals (all conds together)
+SUBJ = 1;
+Freqs = 0:outData{1,1}.dFHz:outData{SUBJ,1}.dFHz*(outData{1,1}.nFr-1);
+Cols = brewermap(5,'Dark2');
+Cols = Cols(2:5,:);
+numcom = 4;
+
+nF1C = [2 4]; % nF1 clean harmonics 2 4 5 7 8 
+nF2 = [1 2 ]; % nF2 harmonics 2 3 
+
+nFC_Idx{1} = nF1C * f1Idx +1;
+nFC_Idx{2} = nF2 * f2Idx +1;
 
 
+MaxxAll = MergeAxx(Maxx(:));
+for h = 1:2
+    [decompAxx_ind_all.(Harms{h}),~,A_ind_all.(Harms{h}),D] = mrC.SpatialFilters.RCA(MaxxAll,'freq_range',Freqs(nFC_Idx{h}));
+end
+%
+cols = brewermap(3,'Set1');
+cols = cols([2 1 3],:);
+for h = 1:2
+    FIG = figure;
+    for comp = numcom:-1:1
+        subplot(2,numcom,comp),mrC.plotOnEgi(A_ind_all.(Harms{h})(:,comp));axis tight equal
+        if comp==1
+            TX2 =text(-1.8,-.3,Harms{h},'fontsize',14,'rotation',90);
+        end
+        title(['RC' num2str(comp)]);
 
+        % Plot the RC 2D phases
+        C = decompAxx_ind_all.(Harms{h}).Cos(nFC_Idx{1},1:numcom,:);
+        C = squeeze(mean(reshape(C,size(C,1),size(C,2),size(C,3)/3,3),3));
+        
+        S = decompAxx_ind_all.(Harms{h}).Sin(nFC_Idx{1},1:numcom,:);
+        S = squeeze(mean(reshape(S,size(S,1),size(S,2),size(S,3)/3,3),3));
+        
+        subplot(2,numcom,comp+numcom),
+        M = max(max(max(abs(C(1,comp,:)))),max(max(abs(S(1,comp,:)))))*1.1;
+        line([0 0],[-M M],'color',[.5 .5 .5]);
+        line([-M M],[0 0],'color',[.5 .5 .5])
+        for ts = 3:-1:1
+            l(ts) = line([0 C(1,comp,ts)],[0 S(1,comp,ts)],'Color',cols(ts,:),'linewidth',2,'linestyle','-');hold on;
+        end
+        
+        axis equal
+        xlim([-M M]);ylim([-M M]);
+
+    end
+    L = legend(l,Task);
+    set(L,'position',get(L,'position')+[.03 .08 0 0])
+    colormap('jet')
+    set(FIG,'unit','inch','Paperposition',[1 1 12 6],'position',[1 1 12 6])
+    print(FIG,['Figures/EXPERIMENT2/RCA_AverageAll_' Harms{h}],'-r300','-dtiff');
+    close all;
+end
 

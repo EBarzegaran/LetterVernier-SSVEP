@@ -96,7 +96,7 @@ if true
              else
                  Subname = 'AverageAll';
              end
-             print(FIG,['../Presentation/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-r300','-dtiff');
+             print(FIG,['Figures/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-r300','-dtiff');
              close all;
         end
     end
@@ -129,6 +129,9 @@ Condnum = 5; % number of conditions per task
 NCOMP  = 2;
 Cols = brewermap(4,'Dark2');
 Cols = Cols(2:NCOMP+1,:);
+
+logMARs.(Task{1}) = logMAR_letter;
+logMARs.(Task{2}) = logMAR_ver;
 
 for f = 1:numel(analHarms)
     if f==1
@@ -178,15 +181,15 @@ for f = 1:numel(analHarms)
     for comp = 1:NCOMP 
         for ts = 1:numel(Task)
             SP(ts+2) = subplot(3,2,ts+2); %plot(logMAR_ver,mean(abs(Ver_cmplx(comp,:,:)),3),'-o','Color',Cols(comp,:),'linewidth',1.5);hold on;
-            errorbar(logMAR_ver,mean(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:)),3),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
-            xlim([0 .9])
+            errorbar(logMARs.(Task{ts}),mean(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:)),3),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+            xlim([0 max(logMARs.(Task{ts}))+.15])
             ylim([.2 .95])
             ylabel('Amplitude [\muV]','fontsize',FS)
             
             SP(ts+4) = subplot(3,2,ts+4);
             TAng = wrapTo360(rad2deg(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))));
-            errorbar(logMAR_ver,mean(TAng,3),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
-            xlim([0 .9])
+            errorbar(logMARs.(Task{ts}),mean(TAng,3),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+            xlim([0 max(logMARs.(Task{ts}))+.15])
             ylim([0 450])
             xlabel('LogMAR','fontsize',FS);
             ylabel('Phase [Radian]','fontsize',FS)
@@ -199,7 +202,7 @@ for f = 1:numel(analHarms)
     set(SP(6),'position',get(SP(6),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
     set(SP(5),'position',get(SP(5),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
 
-    print(FIG,['../Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
+    print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
     close all;
     clear TSin TCos TCmplx;
 end
@@ -211,8 +214,7 @@ OddFreqIdx = FreqIdxall(1:2:end);
 EvenFreqIdx = FreqIdxall(2:2:end);
 OEharms = [OddFreqIdx;EvenFreqIdx];
 
-logMARs.(Task{1}) = logMAR_letter;
-logMARs.(Task{2}) = logMAR_ver;
+
 
 for ts = 2:numel(Task) % for each task
 

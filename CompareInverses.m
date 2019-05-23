@@ -21,14 +21,14 @@ ROILabel = Wangkgs_RoiList{1}.getFullNames('noatlas');
 %% Generate Resolution matrices
 ResultPath = 'ResultData';
 FilePath = fullfile(ResultPath,'LocalizationExampleData_Paper.mat');
-do_new_data_generation = false;
+do_new_data_generation = true;
 
 if ~exist(FilePath,'file') || do_new_data_generation
     [CrossTalk1,Error1,ROISource1,~,~,~] = mrC.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
-        'rois',Wangkgs_RoiList,'doAUC',true,'inverse',Inverse1);
+        'rois',Wangkgs_RoiList,'doAUC',true,'inverse',Inverse1,'roiType','all');
     
     [CrossTalk2,Error2,ROISource2,ScalpData,LIST,subIDs] = mrC.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
-        'rois',Wangkgs_RoiList,'doAUC',true,'inverse',Inverse2);
+        'rois',Wangkgs_RoiList,'doAUC',true,'inverse',Inverse2,'roiType','all');
     save(FilePath,'CrossTalk1','Error1','ROISource1','CrossTalk2','Error2','ROISource2','ScalpData','LIST','subIDs');
 else
     load(FilePath);
