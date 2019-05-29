@@ -15,13 +15,14 @@ clear Inverse;
 [RoiList,subIDs] = mrC.Simulate.GetRoiClass(ProjectPath,[],subIDs_Inverse);% 13 subjects with Wang atlab 
 Wang_RoiList = cellfun(@(x) {x.getAtlasROIs('wang')},RoiList);
 kgs_RoiList = cellfun(@(x) {x.getAtlasROIs('kgs')},RoiList);
-
 Wangkgs_RoiList = arrayfun(@(x) Wang_RoiList{x}.mergROIs(kgs_RoiList{x}),1:numel(Wang_RoiList),'uni',false);
+ROIind = [15:18 25:52 57:59];% select a few ROIs
+Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},Wangkgs_RoiList);
 ROILabel = Wangkgs_RoiList{1}.getFullNames('noatlas');
 %% Generate Resolution matrices
 ResultPath = 'ResultData';
 FilePath = fullfile(ResultPath,'LocalizationExampleData_Paper.mat');
-do_new_data_generation = true;
+do_new_data_generation = false;
 
 if ~exist(FilePath,'file') || do_new_data_generation
     [CrossTalk1,Error1,ROISource1,~,~,~] = mrC.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
@@ -35,22 +36,27 @@ else
 end
 
 %% 
+FigPath = 'Figures';
+HemiName = {'left','right'};
 
 % Plot Cross Talk Matrices
 CrossTalk1 = cellfun(@(x) x./repmat(max(x),[size(x,1) 1]),CrossTalk1,'uni',false);% normalize
 CrossTalk2 = cellfun(@(x) x./repmat(max(x),[size(x,1) 1]),CrossTalk2,'uni',false);% normalize
 CT1 = (cat(3,CrossTalk1{:}));%CT1 = (CT1(1:2:end,1:2:end,:)+CT1(2:2:end,2:2:end,:))./2;
 CT2 = (cat(3,CrossTalk2{:}));%CT2 = (CT2(1:2:end,1:2:end,:)+CT2(2:2:end,2:2:end,:))./2;
+CT1 = CT1(ROIind,ROIind);
+CT2 = CT2(ROIind,ROIind);
 
+FIG = figure;
 for i = 1:2
-    eval(['CTM1 = mean(cat(3,CrossTalk' num2str(i) '{:}),3);']);
+    %eval(['CTM1 = mean(cat(3,CrossTalk' num2str(i) '{:}),3);']);
     S = subplot(1,2,i);
     eval(['imagesc((mean(CT' num2str(i) ',3)));']);
     colormap(jmaColors('coolhot'));
     %colormap('gray')
     %caxis([-max(abs(CTMM(:))) max(abs(CTMM(:)))]);
     caxis([-1 1]);
-    
+
     set(gca,'ytick',1:numel(ROILabel),'yticklabel',ROILabel,'xtick',1:numel(ROILabel),'xticklabel',ROILabel,'fontsize',10);
     if exist('xtickangle'), xtickangle(90); end
     xlabel('receiving ROI','fontsize',12);
@@ -60,13 +66,43 @@ for i = 1:2
         title('WMN_FACE');
     end
 end
+set(FIG,'PaperPosition',[1 1 20 8]);
+set(gcf, 'Color', 'w');
+set(FIG,'Units','Inch')
+set(FIG,'Position',[1 1 20 9]);
+print(fullfile(FigPath,'simulation',['CrossTalk_All']),'-dtiff','-r300');
+close;
 
+%%
+for i = 1:2
+    eval(['CTM(:,:,i) = mean(cat(3,CrossTalk' num2str(i) '{:}),3);']);
+end
+
+for r = 1:64
+    FIG= figure;
+    indR = mod(r,2);
+    if indR==0,indR=2;end
+    
+    bar(squeeze(CTM(r,indR:2:end,:)));
+    ylim([-1 1]);
+    
+    set(gca,'xtick',1:numel(ROILabel(indR:2:end)),'xticklabel',ROILabel(indR:2:end),'fontsize',10);
+    if exist('xtickangle'), xtickangle(90); end
+    title(ROILabel(r))
+    legend('MN+FACE','WMN+FACE')
+    
+    set(FIG,'PaperPosition',[1 1 12 4]);
+    %print(fullfile(FigPath,['SourceEstimation_Simulation_Error_' HemiName{Hemi}]),'-r300','-dtiff')
+    set(gcf, 'Color', 'w');
+    set(FIG,'Units','Inch')
+    set(FIG,'Position',[1 1 12 4]);
+    print(fullfile(FigPath,'simulation',['CrossTalk_' ROILabel{r}]),'-dtiff','-r300');
+    close;
+end
 
 %% AUC relative Enegry, Focalization Error
-
 % prepare data
-FigPath = 'Figures';
-HemiName = {'left','right'};
+
 
 for Hemi = 1:2% 1 for left  and 2 for right
     ROINum = 64;
