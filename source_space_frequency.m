@@ -15,8 +15,8 @@ addpath(genpath('/Users/kohler/code/git/sweepAnalysis/functions/helper'));
 %% Convert spectrum data into source space
 Path = '/Volumes/svndl/mrC_Projects/VernierLetters/source';
 % Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangROIsCorr.inv';
- Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
-Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
+Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
+%Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
 [outData,~,FreqFeatures,subIDs] = mrC.SourceBrain(Path,Inverse,'domain','frequency','doSmooth' , true);%,'template','nl-0014');
 %% load morph maps
 for s = 1:numel(subIDs)
@@ -100,7 +100,7 @@ end
 
 
 %% plot phase
-ROIselect = [3:10 15:18 29:60];
+ROIselect = [15:18 25:52 57:60];
 ROILabelSel = ROILabel(ROIselect);
 for h = 1:2
     for ts = 1:2
@@ -115,7 +115,7 @@ for h = 1:2
            
        end
        
-       PData = squeeze(mean(FDataROI.(Task{ts}).(Harms{h})(:,ROIselect,:),1));
+       PData = squeeze(nanmean(FDataROI.(Task{ts}).(Harms{h})(:,ROIselect,:),1));
        Results.(Task{ts}).(Harms{h}) = (PData);
        %Results.('Phase').(Task{ts}).(Harms{h})(Results.('Phase').(Task{ts}).(Harms{h})>5.5) = 0;
        subplot(2,1,1),bar(wrapTo2Pi(angle(Results.(Task{ts}).(Harms{h})(1:2:end,:))));
@@ -132,49 +132,71 @@ end
 close all;
 
 %% sort ROIs according to phase
-Cs = distinguishable_colors(22);
-Colors(1:2:44,:) = Cs;
-Colors(2:2:44,:) = Cs;
+InvName = 'MN';
+Cs = distinguishable_colors(18);
+Colors(1:2:36,:) = Cs;
+Colors(2:2:36,:) = Cs;
+Colors_amp = winter(5);
+Colors_phase = autumn(5);
+
 ROILabelSel2 = ROILabelSel(1:end);
-hemi = {'left','right'};
+HemName = {'left','right'};
 for ts = 1:2
-    for h = 1:1
-        for Hem = 1:2
-            FIG = figure;
-            set(FIG,'PaperPosition',[5 5 24 8]);
-            set(gcf, 'Color', 'w');
-            set(FIG,'Units','Inch')
-            set(FIG,'Position',[5 5 24 8]);
-            R = Results.(Task{ts}).(Harms{h});        
-            RM = mean(R(:,2:3),2);
-            RM = RM(1:end);
-            clear RoiInd hnd;
+    for h = 1:2
+        FIG = figure;
+        set(FIG,'PaperPosition',[5 5 20 12]);
+        set(gcf, 'Color', 'w');
+        set(FIG,'Units','Inch')
+        set(FIG,'Position',[5 5 20 12]);
+        R = Results.(Task{ts}).(Harms{h});    
+        RM = mean(R,2);
+        for hem = 1:2
+            subplot(2,3,1+((hem-1)*3)), % plot the complex values
+
             ind = 1;
-            subplot(1,2,1)
-            for roi= Hem:2:numel(RM)
-                if abs(RM(roi))>=nanmean(abs(RM(Hem:2:end)))
+            clear hnd
+            for roi= hem:2:numel(ROILabelSel2)
+                if abs(RM(roi))>=nanmean(abs(RM(:)))
                     hnd(ind)=line([0 real(RM(roi))],[0 imag(RM(roi))],'Color',Colors(roi,:),'linewidth',2);
                     RoiInd(ind) = roi;
                     ind = ind+1;
-
                 end
             end
-            legend(hnd,ROILabelSel2(RoiInd))
-            title([Task{ts} '_' Harms{h}])
+            Leg = legend(hnd,ROILabelSel2(RoiInd));
+            set(Leg,'position',get(Leg,'position')+[.03 0 0 0])
+            xlim([-max(abs(RM)) max(abs(RM))]);
+            ylim([-max(abs(RM)) max(abs(RM))]);
             axis equal
-            xlim([-4 4]);ylim([-4 4])
+            title([HemName{hem} ' hemisphere'],'fontsize',12)
 
-            R = Results.(Task{ts}).(Harms{h});    
-            subplot(2,2,2),bar(wrapTo2Pi(angle(RM(Hem:2:end))),.3)
-            set(gca,'xticklabel','','position',get(gca,'position')+[0 -.07 0 0]);
-            ylabel('Phase(radian)')
-            title(hemi{Hem})
-            subplot(2,2,4),bar(-abs(RM(Hem:2:end)),.3,'r')
-            line([0 22.5],-1*[nanmean(abs(RM(Hem:2:end))) nanmean(abs(RM(Hem:2:end)))],'linestyle','--','color','k')
-            set(gca,'xtick',1:numel(ROILabelSel2(Hem:2:end)),'xticklabel',ROILabelSel2(Hem:2:end),'position',get(gca,'position')+[0 .07 0 0]);
-            set(gca,'ytick',-4:.5:0,'yticklabel',4:-.5:0)
-            ylabel('Amplitude')
+            S1 = subplot(4,2,2+(hem-1)*4); % plot the amplitudes
+            B = bar(abs(squeeze(R(hem:2:end,:))),'FaceColor','flat');
+            for k = 1:5
+                 B(k).CData = Colors_amp(k,:);
+            end
+            ylabel('Amplitude (\mu V)')
+            ylim([0 max(max((abs(R))))]*1.1);
+            if hem==1
+                T = title([Task{ts} ' - ' Harms{h}(2:end) ' - ' InvName],'fontsiz',16);
+                set(T,'position',get(T,'position')+[-10 1 0])
+            end
+            
+            S2 = subplot(4,2,4+(hem-1)*4); % plot the amplitudes
+            B = bar(-1*wrapTo2Pi(angle(squeeze(R(hem:2:end,:)))),'FaceColor','flat');
+            for k = 1:5
+                 B(k).CData = Colors_phase(k,:);
+            end
+            
+            set(S1,'position',get(S1,'position')+[-.1 -.02 .1 .02],'xticklabel',[]);
+            set(S2,'position',get(S2,'position')+[-.1 .02 .1 .02],'xtick',1:numel(ROILabelSel2(hem:2:numel(ROILabelSel2))),...
+                'xticklabel',ROILabelSel2(hem:2:numel(ROILabelSel2)),'ytick',-2*pi:pi/2:0,'yticklabel',{'2\pi','','\pi','','0'});
+            xtickangle(90);
+            ylim([-2*pi+eps 0]);
+            ylabel('Phase (Radian)')
+
         end 
+        print(fullfile('Figures','SourceSpace','Source1_ROIAverage',[Task{ts} '_' Harms{h}(2:end) '_sources_' InvName '.tif']),'-dtiff','-r300');
+        close;
     end
 end
 % Then take into account the amplitude

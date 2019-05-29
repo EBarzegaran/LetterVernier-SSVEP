@@ -23,7 +23,12 @@ WKROIsM = cellfun(@(x) x.ROI2mat(20484),WKROIs,'uni',false);
 ROILabel = WKROIs{1}.getFullNames('noatlas');
 %InvROIs = arrayfun(@(x) Inverses{x}*WKROIsM{x}./(sum(WKROIsM{x})+eps),1:numel(Inverses),'uni',false);
 
+InvName = 'WMN';
 Inverse1 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
+
+% InvName = 'MN';
+% Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
+
 [Inverses,subIDs_Inverse] = mrC.Simulate.ReadInverses(Path,Inverse1);
 
 %% correct the IDs
@@ -152,7 +157,11 @@ for ts = 1:2
                 end
                 ylabel('Amplitude (\mu V)')
                 ylim([0 max(max(mean(abs(tempc_bl(:,:,Fs(h),:)))))]);
-
+                if hem==1
+                    T = title([Task{ts} ' - ' Harms{h}(2:end) ' - ' InvName],'fontsiz',16);
+                    set(T,'position',get(T,'position')+[-10 1 0])
+                end
+                
                 S2 = subplot(4,2,4+(hem-1)*4); % plot the amplitudes
                 B = bar(-1*wrapTo2Pi(angle(squeeze(mean(tempc_bl(:,hem:2:end,Fs(h),:),1)))),'FaceColor','flat');
                 for k = 1:5
@@ -166,7 +175,7 @@ for ts = 1:2
                 ylabel('Phase (Radian)')
 
             end
-            print(fullfile('Figures','SourceResult',[Task{ts} '_' Harms{h} '_sources_RC' num2str(comp) '.tif']),'-dtiff','-r300');
+            print(fullfile('Figures','SourceResult','Source1_ROIRCA',[Task{ts} '_' Harms{h} '_sources_RC' num2str(comp) '_' InvName '.tif']),'-dtiff','-r300');
             close;
         end
     end

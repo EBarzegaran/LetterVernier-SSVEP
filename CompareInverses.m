@@ -36,7 +36,7 @@ else
 end
 
 %% 
-FigPath = 'Figures';
+FigPath = fullfile('Figures','SourceSpace');
 HemiName = {'left','right'};
 
 % Plot Cross Talk Matrices
@@ -63,7 +63,7 @@ for i = 1:2
     if i==1
         title('MN+FACE');
     else
-        title('WMN_FACE');
+        title('WMN+FACE');
     end
 end
 set(FIG,'PaperPosition',[1 1 20 8]);
