@@ -5,7 +5,7 @@
 
 clear;
 clc;
-addpath(genpath('/Users/kohler/code/git/mrC'));
+addpath(genpath('/Users/babylab/Documents/Elham/git/mrC'));
 %% Load Axx trial files
 
 PDiva_Path = '/Volumes/Denali_DATA1/Elham/EEG_Textscamble/';
@@ -46,19 +46,19 @@ clear Subjfolders
 Ords = 1:10;
 Finds  = [7 13 19 25];
 
-Sublist = num2cell(1:16);
-Sublist{end+1} = 1:16;
+Sublist = num2cell(1:numel(SubIDs));
+Sublist{end+1} = 1:numel(SubIDs);
 load ResultData/LogMar_Val.mat
 logMAR = [logMAR_letter logMAR_ver];
 % figure params
-FS = 10;
+FS = 9;
 SizeInc = .05;
 if true
-    for Sub = 1: numel(Sublist)
+    for Sub =  numel(Sublist): numel(Sublist)
         for i = 1:numel(Finds)%4
             FIG = figure;
-            set(FIG,'unit','inch','position',[17 10 9 3.37])
-            set(FIG,'unit','inch','paperposition',[17 10 9 3.37])
+            set(FIG,'unit','inch','position',[17 10 7 2.36],'color','w')
+            set(FIG,'unit','inch','paperposition',[17 10 7 2.36])
             clear Datamean Lim;
             for Cond = 10:-1:1
                 axx_allsub = MergeAxx(outData(Sublist{Sub},Ords(Cond)));
@@ -78,7 +78,7 @@ if true
                     set(h,'ylim',[0 LimC(ceil(Cond/5))]);
                     set(S,'position',SP);
                     set(h,'position',get(h,'position')+[ .02 0 0 .0],'fontsize',FS);
-                    set(get(h,'label'),'String','1F1 ASD \muV','position',get(get(h,'label'),'position')+[-4.7 0 0])
+                    set(get(h,'label'),'String','1F1 ASD \muV','position',get(get(h,'label'),'position')+[-5.3 0 0])
                 end
 
                 caxis([0 LimC(ceil(Cond/5))]);
@@ -97,6 +97,8 @@ if true
                  Subname = 'AverageAll';
              end
              print(FIG,['Figures/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-r300','-dtiff');
+             export_fig(FIG,['Figures/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-pdf');
+   
              close all;
         end
     end
@@ -132,32 +134,34 @@ Cols = Cols(2:NCOMP+1,:);
 
 logMARs.(Task{1}) = logMAR_letter;
 logMARs.(Task{2}) = logMAR_ver;
-
+FS = 9;
 for f = 1:numel(analHarms)
     if f==1
-        Flips = [1 -1]; 
+        Flips = [1 1]; 
     else
         Flips = [1 1];
     end
-    caxisS = [max(max(abs(A_all.(Task{1}).(Harms{analHarms(f)})(:,1:2))))*.9 max(max(abs(A_all.(Task{2}).(Harms{analHarms(f)})(:,1:2))))*.9 ];
+    caxisS = [(max(abs(A_all.(Task{1}).(Harms{analHarms(f)})(:,1:2)))); (max(abs(A_all.(Task{2}).(Harms{analHarms(f)})(:,1:2)))) ];
     
     FIG=figure;
-    set(FIG,'unit','inch','position',[10 5 8 6.3])
-    set(FIG,'unit','inch','paperposition',[17 10 8 6.3])
+    set(FIG,'unit','inch','position',[10 5 7 5],'color','w');
+    set(FIG,'unit','inch','paperposition',[17 10 7 5])
     for comp = NCOMP:-1:1
         for ts = 1:numel(Task)
-            S(comp+(ts-1)*2) = subplot(3,NCOMP*2,comp+(ts-1)*NCOMP);mrC.Simulate.plotOnEgi(A_all.(Task{ts}).(Harms{analHarms(f)})(:,comp)*Flips(ts));axis tight equal;caxis([-caxisS(ts) caxisS(ts)]);
+            S(comp+(ts-1)*2) = subplot(3,NCOMP*2,comp+(ts-1)*NCOMP);mrC.Simulate.plotOnEgi(A_all.(Task{ts}).(Harms{analHarms(f)})(:,comp)*Flips(ts));axis tight equal;caxis([-caxisS(ts,comp) caxisS(ts,comp)]);
             title(['RC' num2str(comp)],'fontsize',FS,'Color',Cols(comp,:));%,'fontweight','normal');%colorbar;
-            if comp ==2
-                set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-.03+ts*.03 -.07 -.02 -.02]);
-            else
-                set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[0.02+ts*.03 -.07 -.02 -.02]);
-                SP = get(S(comp+(ts-1)*2),'position');
-                h=colorbar;
-                set(h,'location','westoutside');
-                set(S(comp+(ts-1)*2),'position',SP)
-                set(h,'position',get(h,'position')+[.02 0 0 0],'fontsize',FS);
-            end
+%             if comp ==2
+%                 set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-.03+ts*.03 -.07 -.02 -.02]);
+%                 h=colorbar;
+%                 set(h,'location','westoutside');
+%             else
+            set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-0.02+ts*.032 -.07 -.02 -.02]);
+            SP = get(S(comp+(ts-1)*2),'position');
+            h=colorbar;
+            set(h,'location','westoutside');
+            set(S(comp+(ts-1)*2),'position',SP)
+            set(h,'position',get(h,'position')+[.02 0 0 0],'fontsize',FS);
+%             end
             if comp==1
                 text(1, 2.4,Task{ts},'fontsize',FS+2,'fontweight','bold')
             end
@@ -203,6 +207,7 @@ for f = 1:numel(analHarms)
     set(SP(5),'position',get(SP(5),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
 
     print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
+    export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
     close all;
     clear TSin TCos TCmplx;
 end

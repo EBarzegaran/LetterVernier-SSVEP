@@ -23,11 +23,11 @@ WKROIsM = cellfun(@(x) x.ROI2mat(20484),WKROIs,'uni',false);
 ROILabel = WKROIs{1}.getFullNames('noatlas');
 %InvROIs = arrayfun(@(x) Inverses{x}*WKROIsM{x}./(sum(WKROIsM{x})+eps),1:numel(Inverses),'uni',false);
 
-InvName = 'WMN';
-Inverse1 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
+% InvName = 'WMN';
+% Inverse1 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
 
-% InvName = 'MN';
-% Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
+InvName = 'MN';
+Inverse1 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
 
 [Inverses,subIDs_Inverse] = mrC.Simulate.ReadInverses(Path,Inverse1);
 
@@ -104,7 +104,10 @@ for ts = 1:2
         for comp = 1:2
             clear temp; 
             FIG = figure;
-            set(FIG,'unit','inch','position',[5 5 20 12],'paperposition',[5 5 20 12]);
+            set(FIG,'PaperPosition',[5 5 20 12]);
+            set(gcf, 'Color', 'w');
+            set(FIG,'Units','Inch')
+            set(FIG,'Position',[5 5 20 12]);
             for sub = 1:numel(SubIDs)
                 for roi = 1:numel(ROILabel)
                  t = mean(decompAxx.(Task{ts}).(Harms{h}).('Wave'){sub,roi},3);
@@ -159,7 +162,7 @@ for ts = 1:2
                 ylim([0 max(max(mean(abs(tempc_bl(:,:,Fs(h),:)))))]);
                 if hem==1
                     T = title([Task{ts} ' - ' Harms{h}(2:end) ' - ' InvName],'fontsiz',16);
-                    set(T,'position',get(T,'position')+[-10 1 0])
+                    %set(T,'position',get(T,'position')+[-10 1 0])
                 end
                 
                 S2 = subplot(4,2,4+(hem-1)*4); % plot the amplitudes
@@ -175,7 +178,7 @@ for ts = 1:2
                 ylabel('Phase (Radian)')
 
             end
-            print(fullfile('Figures','SourceResult','Source1_ROIRCA',[Task{ts} '_' Harms{h} '_sources_RC' num2str(comp) '_' InvName '.tif']),'-dtiff','-r300');
+            print(fullfile('Figures','SourceSpace','Source1_ROIRCA',[Task{ts} '_' Harms{h} '_sources_RC' num2str(comp) '_' InvName '.tif']),'-dtiff','-r300');
             close;
         end
     end
