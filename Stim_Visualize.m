@@ -59,7 +59,7 @@ img = squeeze(img);
 VI = 4;
 FS = 12;
 Fig_Ver = figure;
-set(Fig_Ver,'unit','inch','Position',[5 5 6 5.7],'color','w','PaperPosition',[5 5 6 5.7]);
+set(Fig_Ver,'unit','inch','Position',[5 5 3 2.85],'color','w','PaperPosition',[5 5 3 2.85]);
 
 subplot(2,2,1),imagesc(Im(1:768,1:768,VI,1)); 
 colormap('gray');

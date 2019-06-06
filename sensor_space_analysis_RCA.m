@@ -6,6 +6,7 @@
 clear;
 clc;
 addpath(genpath('/Users/babylab/Documents/Elham/git/mrC'));
+addpath(genpath('/Users/babylab/Documents/Elham/text-scramble/LetterVernierProject'))
 %% Load Axx trial files
 
 PDiva_Path = '/Volumes/Denali_DATA1/Elham/EEG_Textscamble/';
@@ -34,13 +35,15 @@ Task = {'Letter','Vernier'};
 for Sub = 1:numel(SubIDs)
     % merge letter and vernier conditions for 
     axx.(Task{1}){Sub} = MergeAxx(outData(Sub,1:5));
-    [decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.RCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
+    axxM.(Task{1}){Sub} =MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,1:5),'uni',false));
+    %[decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.RCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
      
     axx.(Task{2}){Sub} = MergeAxx(outData(Sub,6:10));
-    [decompAxx_ind.(Task{2}){Sub},~,A_ind.(Task{2}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{2}){Sub},'freq_range',Freqs([7 19]));
+    axxM.(Task{2}){Sub} =MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,6:10),'uni',false));
+    %[decompAxx_ind.(Task{2}){Sub},~,A_ind.(Task{2}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{2}){Sub},'freq_range',Freqs([7 19]));
 end
 
-clear Subjfolders
+clear Subjfolders;% outData;
 %% plot individual and average ASD results
 
 Ords = 1:10;
@@ -53,7 +56,7 @@ logMAR = [logMAR_letter logMAR_ver];
 % figure params
 FS = 9;
 SizeInc = .05;
-if true
+if false
     for Sub =  numel(Sublist): numel(Sublist)
         for i = 1:numel(Finds)%4
             FIG = figure;
@@ -85,11 +88,12 @@ if true
                 if Cond==6
                     text(-1.8,-.2,'Vernier','fontsize',FS,'fontweight','bold','rotation',90);
                 elseif Cond ==1
-                    text(-1.8,-.2,'Letters','fontsize',FS,'fontweight','bold','rotation',90);
+                    text(-1.8,-.2,'Letter','fontsize',FS,'fontweight','bold','rotation',90);
                 end
              end
 
-             colormap('jet')
+             %colormap('jet')
+             colormap(jmaColors('hotcortex'))
 
              if Sub<=numel(SubIDs)
                  Subname = SubIDs{Sub};
@@ -109,7 +113,7 @@ clear decompAxx_Letter_all decompAxx_Vernier_all A_Vernier_all A_Letter_all D_Le
 %SELECT the harmonic to do analysis 
 analHarms = [1 2];
 Harms = {'H1F1','H2F1','H3F1','H4F1'};
-RedoRCA = true;
+RedoRCA = false;
 % Group Level RCA
 if RedoRCA || ~exist(fullfile('ResultData','GroupRCA.mat'),'file')
     for f = 1:numel(analHarms)
@@ -129,122 +133,144 @@ end
 Subnum = numel(SubIDs);% number of subjects
 Condnum = 5; % number of conditions per task
 NCOMP  = 2;
-Cols = brewermap(4,'Dark2');
-Cols = Cols(2:NCOMP+1,:);
+Cols = brewermap(4,'Set1');
+Cols = Cols(3:4,:);
 
 logMARs.(Task{1}) = logMAR_letter;
 logMARs.(Task{2}) = logMAR_ver;
 FS = 9;
-for f = 1:numel(analHarms)
-    if f==1
-        Flips = [1 1]; 
-    else
-        Flips = [1 1];
-    end
-    caxisS = [(max(abs(A_all.(Task{1}).(Harms{analHarms(f)})(:,1:2)))); (max(abs(A_all.(Task{2}).(Harms{analHarms(f)})(:,1:2)))) ];
-    
-    FIG=figure;
-    set(FIG,'unit','inch','position',[10 5 7 5],'color','w');
-    set(FIG,'unit','inch','paperposition',[17 10 7 5])
-    for comp = NCOMP:-1:1
-        for ts = 1:numel(Task)
-            S(comp+(ts-1)*2) = subplot(3,NCOMP*2,comp+(ts-1)*NCOMP);mrC.Simulate.plotOnEgi(A_all.(Task{ts}).(Harms{analHarms(f)})(:,comp)*Flips(ts));axis tight equal;caxis([-caxisS(ts,comp) caxisS(ts,comp)]);
-            title(['RC' num2str(comp)],'fontsize',FS,'Color',Cols(comp,:));%,'fontweight','normal');%colorbar;
-%             if comp ==2
-%                 set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-.03+ts*.03 -.07 -.02 -.02]);
-%                 h=colorbar;
-%                 set(h,'location','westoutside');
-%             else
-            set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-0.02+ts*.032 -.07 -.02 -.02]);
-            SP = get(S(comp+(ts-1)*2),'position');
-            h=colorbar;
-            set(h,'location','westoutside');
-            set(S(comp+(ts-1)*2),'position',SP)
-            set(h,'position',get(h,'position')+[.02 0 0 0],'fontsize',FS);
-%             end
-            if comp==1
-                text(1, 2.4,Task{ts},'fontsize',FS+2,'fontweight','bold')
+if true
+    for f = 1:numel(analHarms)
+        if f==1
+            Flips = [1 1]; 
+        else
+            Flips = [1 1];
+        end
+        caxisS = [(max(abs(A_all.(Task{1}).(Harms{analHarms(f)})(:,1:2)))); (max(abs(A_all.(Task{2}).(Harms{analHarms(f)})(:,1:2)))) ];
+
+        FIG=figure;
+        set(FIG,'unit','inch','position',[10 5 7 5],'color','w');
+        set(FIG,'unit','inch','paperposition',[17 10 7 5])
+        for comp = NCOMP:-1:1
+            for ts = 1:numel(Task)
+                S(comp+(ts-1)*2) = subplot(3,NCOMP*2,comp+(ts-1)*NCOMP);mrC.Simulate.plotOnEgi(A_all.(Task{ts}).(Harms{analHarms(f)})(:,comp)*Flips(ts));axis tight equal;caxis([-caxisS(ts,comp) caxisS(ts,comp)]);
+                title(['RC' num2str(comp)],'fontsize',FS,'Color',Cols(comp,:));%,'fontweight','normal');%colorbar;
+    %             if comp ==2
+    %                 set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-.03+ts*.03 -.07 -.02 -.02]);
+    %                 h=colorbar;
+    %                 set(h,'location','westoutside');
+    %             else
+                set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-0.02+ts*.032 -.07 -.02 -.02]);
+                SP = get(S(comp+(ts-1)*2),'position');
+                h=colorbar;
+                set(h,'location','westoutside');
+                set(S(comp+(ts-1)*2),'position',SP)
+                set(h,'position',get(h,'position')+[.02 0 0 0],'fontsize',FS);
+    %             end
+                if comp==1
+                    text(1, 2.4,Task{ts},'fontsize',FS+2,'fontweight','bold')
+                end
             end
+
+            %colormap('jet');%jmaColors('coolhotcortex'))
+            colormap(jmaColors('coolhotcortex'))
         end
-        
-        colormap('jet');%jmaColors('coolhotcortex'))
-    end
 
-    %
-    fRCA = Finds(analHarms(f));
-    for ts = 1:numel(Task)
-        numcomp = numel(D_all.(Task{ts}).(Harms{analHarms(f)}));
-        TCos = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,:,1:end-70)),[numcomp,16,Condnum,Subnum-1]),2));% last subject has 14 trails
-        TSin = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,:,1:end-70)),[numcomp,16,Condnum,Subnum-1]),2));
-
-        TCos(:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,:,end-69:end)),[numcomp,14,Condnum,1]),2));
-        TSin(:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,:,end-69:end)),[numcomp,14,Condnum,1]),2));
-        TCmplx.(Task{ts}).(Harms{analHarms(f)}) = Flips(ts)*TCos+(TSin*1i*Flips(ts));
-    end
-
-    for comp = 1:NCOMP 
+        %
+        fRCA = Finds(analHarms(f));
         for ts = 1:numel(Task)
-            SP(ts+2) = subplot(3,2,ts+2); %plot(logMAR_ver,mean(abs(Ver_cmplx(comp,:,:)),3),'-o','Color',Cols(comp,:),'linewidth',1.5);hold on;
-            errorbar(logMARs.(Task{ts}),mean(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:)),3),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
-            xlim([0 max(logMARs.(Task{ts}))+.15])
-            ylim([.2 .95])
-            ylabel('Amplitude [\muV]','fontsize',FS)
-            
-            SP(ts+4) = subplot(3,2,ts+4);
-            TAng = wrapTo360(rad2deg(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))));
-            errorbar(logMARs.(Task{ts}),mean(TAng,3),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
-            xlim([0 max(logMARs.(Task{ts}))+.15])
-            ylim([0 450])
-            xlabel('LogMAR','fontsize',FS);
-            ylabel('Phase [Radian]','fontsize',FS)
+            numcomp = numel(D_all.(Task{ts}).(Harms{analHarms(f)}));
+            TCos = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,:,1:end-70)),[numcomp,16,Condnum,Subnum-1]),2));% last subject has 14 trails
+            TSin = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,:,1:end-70)),[numcomp,16,Condnum,Subnum-1]),2));
+
+            TCos(:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,:,end-69:end)),[numcomp,14,Condnum,1]),2));
+            TSin(:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,:,end-69:end)),[numcomp,14,Condnum,1]),2));
+            TCmplx.(Task{ts}).(Harms{analHarms(f)}) = Flips(ts)*TCos+(TSin*1i*Flips(ts));
         end
 
+        for comp = 1:NCOMP 
+            for ts = 1:numel(Task)
+                SP(ts+2) = subplot(3,2,ts+2); %plot(logMAR_ver,mean(abs(Ver_cmplx(comp,:,:)),3),'-o','Color',Cols(comp,:),'linewidth',1.5);hold on;
+                errorbar(logMARs.(Task{ts}),mean(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:)),3),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+                xlim([0 max(logMARs.(Task{ts}))+.15])
+                ylim([.2 .95])
+                ylabel('Amplitude [\muV]','fontsize',FS)
+
+                SP(ts+4) = subplot(3,2,ts+4);
+                TAng = wrapTo360(rad2deg(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))));
+                errorbar(logMARs.(Task{ts}),mean(TAng,3),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+                xlim([0 max(logMARs.(Task{ts}))+.15])
+                ylim([0 450])
+                xlabel('LogMAR','fontsize',FS);
+                ylabel('Phase [Radian]','fontsize',FS)
+            end
+
+        end
+
+        set(SP(4),'position',get(SP(4),'position')+[.025 0 -.05 0],'xticklabel',[],'fontsize',FS)
+        set(SP(3),'position',get(SP(3),'position')+[.025 0 -.05 0],'xticklabel',[],'fontsize',FS)
+        set(SP(6),'position',get(SP(6),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
+        set(SP(5),'position',get(SP(5),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
+
+        print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
+        export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
+        close all;
+        clear TSin TCos TCmplx;
     end
-
-    set(SP(4),'position',get(SP(4),'position')+[.025 0 -.05 0],'xticklabel',[],'fontsize',FS)
-    set(SP(3),'position',get(SP(3),'position')+[.025 0 -.05 0],'xticklabel',[],'fontsize',FS)
-    set(SP(6),'position',get(SP(6),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
-    set(SP(5),'position',get(SP(5),'position')+[.025 0.082 -.05 0],'fontsize',FS,'ytick',0:90:360,'yticklabel',{'0','','\pi','','2\pi'})
-
-    print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
-    export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
-    close all;
-    clear TSin TCos TCmplx;
+    clear decompAxx_all W_all A_all D_all;
 end
-
 %% Temporal dynamics of the RCs
-Styles = {'-','--'};
+Styles = {'-','-'};
 FreqIdxall = 6*(1:16)+1;
 OddFreqIdx = FreqIdxall(1:2:end);
 EvenFreqIdx = FreqIdxall(2:2:end);
 OEharms = [OddFreqIdx;EvenFreqIdx];
 
 
-
-for ts = 2:numel(Task) % for each task
-
-     for f = 1:numel(analHarms) % for each harmonics
-        if f==1
-            Flips = [1 -1]; 
-        else
-            Flips = [1 1];
+%GROUP LEVEL ANALYSIS 2
+%SELECT the harmonic to do analysis 
+analHarms = [1 2];
+Harms = {'H1F1','H2F1','H3F1','H4F1'};
+RedoRCA = true;
+% Group Level RCA
+if RedoRCA || ~exist(fullfile('ResultData','GroupRCA2.mat'),'file')
+    for f = 1:numel(analHarms)
+        for ts = 1:numel(Task)
+            ts
+            [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),W_all.(Task{ts}).(Harms{analHarms(f)}),A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)})] = mrC.SpatialFilters.RCA(MergeAxx(axxM.(Task{ts})),'freq_range',Freqs(OEharms(f,1:8)));
         end
+    end
+    save(fullfile('ResultData','GroupRCA2'),'decompAxx_all','W_all','A_all','D_all','-v7.3');
+else
+    load(fullfile('ResultData','GroupRCA2.mat'));
+end
+
+Harms2 = {'1F','2F'};
+Fac = 1;
+FS2 = FS*Fac;
+
+
+for f = 1:numel(analHarms) % for each harmonics
+    if f==1
+        Flips = [1 1]; 
+    else
+        Flips = [1 1];
+    end
+    
+    for ts = 1:numel(Task) % for each task
+        
          
         Wave_temp = decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Wave(:,1:NCOMP,:);
-        TWave = squeeze(mean(reshape(squeeze(Wave_temp(:,:,1:end-70)),[140,NCOMP,16,Condnum,Subnum-1]),3));% Reshape the waves
-        TWave(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(Wave_temp(:,:,end-69:end)),[140,NCOMP,14,Condnum,1]),3));
+        TWave = squeeze(mean(reshape(squeeze(Wave_temp),[140,NCOMP,Condnum,Subnum]),3));% Reshape the waves
         Wave_all.(Task{ts}).(Harms{analHarms(f)}) = TWave*Flips(ts);
         clear Wave_temp TWave;
         
         % separate even and odd
         TCmplx = zeros(840,NCOMP,Condnum,Subnum);
         fRCA=OEharms(f,:);
-        TCos = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,1:NCOMP,1:end-70)),[numel(fRCA),NCOMP,16,Condnum,Subnum-1]),3));% last subject has 14 trails
-        TSin = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,1:NCOMP,1:end-70)),[numel(fRCA),NCOMP,16,Condnum,Subnum-1]),3));
-
-        TCos(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,1:NCOMP,end-69:end)),[numel(fRCA),NCOMP,14,Condnum,1]),3));
-        TSin(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,1:NCOMP,end-69:end)),[numel(fRCA),NCOMP,14,Condnum,1]),3));
-        
+        TCos = squeeze(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,1:NCOMP,:)),[numel(fRCA),NCOMP,Condnum,Subnum]));% last subject has 14 trails
+        TSin = squeeze(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,1:NCOMP,:)),[numel(fRCA),NCOMP,Condnum,Subnum]));
+       
         TCmplx(fRCA,:,:,:) = Flips(ts)*TCos+(TSin*1i*Flips(ts));
         TCmplx(end:-1:422,:,:,:) = conj(TCmplx(2:420,:,:,:));
         RWave = ifft(conj(TCmplx),840,1);
@@ -258,31 +284,42 @@ for ts = 2:numel(Task) % for each task
      end
      
     FIG = figure;
-    set(FIG,'unit','inch','position',[1 5 15 5])
-    set(FIG,'unit','inch','paperposition',[1 10 15 5])
-     for f = 1:numel(analHarms)
+    set(FIG,'unit','inch','position',[1 10 9 2.8]*Fac,'color','w')
+    set(FIG,'unit','inch','paperposition',[1 10 9 2.8]*Fac)
+     for ts = 1:numel(Task)
          MWave = mean(RWave_all.(Task{ts}).(Harms{analHarms(f)}),4);
          for cond = 1:5
-             S = subplot(2,5,cond+(f-1)*Condnum); 
-             
+             S = subplot(2,7,cond+(ts-1)*(Condnum+2)); 
+             line([0 333],[0 0],'color',[.4 .4 .4],'linestyle','--');hold on;
              for c = 1:2
-                plot(2.381:2.381:140*2.381,MWave(:,c,cond),Styles{f},'Color',Cols(c,:),'linewidth',1.5);hold on;
+                Cm(c) = plot(2.381:2.381:140*2.381,MWave(:,c,cond),Styles{f},'Color',Cols(c,:),'linewidth',1.5);%hold on;
+                set(gca,'fontsize',FS-2,'xtick',0:100:300);
              end
              
-             title(['LogMAR = ' num2str(round(logMARs.(Task{ts})(cond),2))],'fontsize',FS);
+             title(['LogMAR = ' num2str(round(logMARs.(Task{ts})(cond),2))],'fontsize',FS2,'fontweight','normal');
              if cond==5 && f==1
-                 legend ('RC1','RC2')
+%                  L = legend (Cm,'RC1','RC2');
+%                  L.FontSize = FS2-4;
              end
              if cond==1
-                 ylabel(Harms{f}(2:end),'fontsize',FS,'fontweight','bold');
+                 ylabel(Task{ts},'fontsize',FS2,'fontweight','bold');%,'fontweight','bold');
              end
              xlim([0 333]);
-             ylim([-1.2 1.2]);%axis tight;
+             ylim([-1.4 1.4]);%axis tight;
              
          end
+         for cmp = 1:2
+             S = subplot(2,7,((Condnum+2)*(ts-1))+Condnum+cmp);
+             mrC.plotOnEgi(A_all.(Task{ts}).(Harms{analHarms(f)})(:,cmp)*Flips(ts))
+             T = title(['RC' num2str(cmp)],'color',Cols(cmp,:),'fontweight','bold','fontsize',FS-1);
+             T.Position = T.Position-[0 .4 0] ;
+             S.Position  = S.Position -[.01*cmp 0 0 0];
+         end
+             
          %set(S,'position',get(S,'position')+[-.01 0 .02 0])
      end
      
-     print(FIG,['Figures/Temporal_RCA_' Task{ts} '_AverageAll'],'-r300','-dtiff');
+     print(FIG,['Figures/Temporal_RCA_' Harms2{f} '_AverageAll'],'-r300','-dtiff');axis tight;
+     export_fig(FIG,['Figures/Temporal_RCA_' Harms2{f} '_AverageAll'],'-pdf');
 end
 
