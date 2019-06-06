@@ -1,5 +1,5 @@
 clear; clc;
-addpath(genpath('/Users/kohler/code/git/stimulus_assessment'))
+addpath(genpath('/Users/babylab/Documents/Elham/git/stimulus_assessment'))
 
 load('Stimuli/SloanTextScrambles_devel.mat','img');
 load('Stimuli/Vernier_Stim.mat');
@@ -15,9 +15,9 @@ exp_fov =  12;%8.5;
 
 %[resp_vals_V, exampleV] = soc_assessment(img_Vernier_input(1:768,1:768,1,1), exp_fov,2);
 
-for cond = 1:5
+for cond = 4:5
     for ts = 1:2
-        %[resp_vals_L{cond,ts}, exampleL] = soc_assessment(squeeze(img_Letter_input(1:400,1:400,cond,:,ts)), exp_fov,1);
+        [resp_vals_L{cond,ts}, exampleL] = soc_assessment(squeeze(img_Letter_input(1:400,1:400,cond,1:2,ts)), exp_fov,1);
         [resp_vals_V{cond,ts}, exampleV] = soc_assessment(squeeze(img_Vernier_input(1:400,1:400,1,2)), exp_fov,1);
     end
 end
