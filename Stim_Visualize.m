@@ -1,4 +1,6 @@
 clear;clc;
+
+addpath(genpath('/Users/elhamb/Documents/Codes/Git/EEGSourceSim'));
 % POWER DIVA and monitor parameters
 ImPixY = 1080;
 ImPixX = 1011;
@@ -52,6 +54,7 @@ for VI = 1:numel(MisAarcmin)
     Im(:,:,VI,2) = Im2;
 end
 save('Stimuli/Vernier_Stim.mat','Im');
+
 %%
 load('Stimuli/SloanTextScrambles_devel.mat');
 img = squeeze(img);
@@ -59,7 +62,7 @@ img = squeeze(img);
 VI = 4;
 FS = 12;
 Fig_Ver = figure;
-set(Fig_Ver,'unit','inch','Position',[5 5 3 2.85],'color','w','PaperPosition',[5 5 3 2.85]);
+set(Fig_Ver,'unit','inch','Position',[5 5 6 5.7],'color','w','PaperPosition',[5 5 6 5.7]);
 
 subplot(2,2,1),imagesc(Im(1:768,1:768,VI,1)); 
 colormap('gray');
@@ -67,7 +70,7 @@ set(gca,'xtick',[],'ytick',[])
 xlabel('Stage 1','fontsize',FS)
 
 T = title('Vernier displacement at 3 Hz','fontsize',FS);
-set(T,'position',get(T,'position')+[650 -20 0])
+set(T,'position',get(T,'position')+[500 -20 0])
 
 subplot(2,2,2),imagesc(Im(1:768,1:768,VI,2));
 set(gca,'xtick',[],'ytick',[])
@@ -77,15 +80,15 @@ xlabel('Stage 2','fontsize',FS)
 Im3 = img(:,:,7,1,1);
 Im4 = img(:,:,7,1,2);
 
-S3 = subplot(2,2,3);imagesc(Im3(:,313:1080));%axis equal
+S3 = subplot(2,2,3);imagesc(Im4(:,313:1080));%axis equal
 set(gca,'xtick',[],'ytick',[])
 xlabel('Stage 1','fontsize',FS);
 %set(S3,'position',get(S3,'position')+[0 .08 0 -.1])
 
 T = title('Letters vs. Scambled letters at 3 Hz','fontsize',FS);
-set(T,'position',get(T,'position')+[600 -20 0])
+set(T,'position',get(T,'position')+[500 -20 0])
 
-S4 = subplot(2,2,4);imagesc(Im4(:,313:1080));%axis equal
+S4 = subplot(2,2,4);imagesc(Im3(:,313:1080));%axis equal
 set(gca,'xtick',[],'ytick',[])
 xlabel('Stage 2','fontsize',FS)
 %set(S4,'position',get(S4,'position')+[0 .08 0 -.1])
