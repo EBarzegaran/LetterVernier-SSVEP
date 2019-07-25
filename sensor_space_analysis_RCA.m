@@ -5,11 +5,11 @@
 
 clear;
 clc;
-addpath(genpath('/Users/babylab/Documents/Elham/git/mrC'));
-addpath(genpath('/Users/babylab/Documents/Elham/text-scramble/LetterVernierProject'))
+addpath(genpath('/Users/elhamb/Documents/Codes/Git/mrC'));
+addpath(genpath(fileparts(mfilename('fullpath'))))
 %% Load Axx trial files
 
-PDiva_Path = '/Volumes/Denali_DATA1/Elham/EEG_Textscamble/';
+PDiva_Path = '/Users/elhamb/Documents/Data/TextScramble_exp1';
 %mrC_Path = '/Volumes/svndl/mrC_Projects/VernierLetters/';
 
 % Read files from thge original folder
@@ -100,7 +100,7 @@ if false
              else
                  Subname = 'AverageAll';
              end
-             print(FIG,['Figures/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-r300','-dtiff');
+             %print(FIG,['Figures/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-r300','-dtiff');
              export_fig(FIG,['Figures/TopoMap_individuals/TopoMap_' num2str(i) 'f1_' Subname '_Amp'],'-pdf');
    
              close all;
@@ -108,7 +108,7 @@ if false
     end
 end
 
-clear decompAxx_Letter_all decompAxx_Vernier_all A_Vernier_all A_Letter_all D_Letter_all D_Vernier_all;
+% clear decompAxx_Letter_all decompAxx_Vernier_all A_Vernier_all A_Letter_all D_Letter_all D_Vernier_all;
 %% GROUP LEVEL ANALYSIS
 %SELECT the harmonic to do analysis 
 analHarms = [1 2];
@@ -142,7 +142,7 @@ FS = 9;
 if true
     for f = 1:numel(analHarms)
         if f==1
-            Flips = [1 1]; 
+            Flips = [1 -1]; 
         else
             Flips = [1 1];
         end
@@ -180,25 +180,27 @@ if true
         fRCA = Finds(analHarms(f));
         for ts = 1:numel(Task)
             numcomp = numel(D_all.(Task{ts}).(Harms{analHarms(f)}));
-            TCos = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,:,1:end-70)),[numcomp,16,Condnum,Subnum-1]),2));% last subject has 14 trails
-            TSin = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,:,1:end-70)),[numcomp,16,Condnum,Subnum-1]),2));
+            TCos = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA-1:fRCA+1,:,1:end-70)),[3,numcomp,16,Condnum,Subnum-1]),3));% last subject has 14 trails
+            TSin = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA-1:fRCA+1,:,1:end-70)),[3,numcomp,16,Condnum,Subnum-1]),3));
 
-            TCos(:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA,:,end-69:end)),[numcomp,14,Condnum,1]),2));
-            TSin(:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA,:,end-69:end)),[numcomp,14,Condnum,1]),2));
+            TCos(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Cos(fRCA-1:fRCA+1,:,end-69:end)),[3,numcomp,14,Condnum,1]),3));
+            TSin(:,:,:,Subnum) = squeeze(mean(reshape(squeeze(decompAxx_all.(Task{ts}).(Harms{analHarms(f)}).Sin(fRCA-1:fRCA+1,:,end-69:end)),[3,numcomp,14,Condnum,1]),3));
             TCmplx.(Task{ts}).(Harms{analHarms(f)}) = Flips(ts)*TCos+(TSin*1i*Flips(ts));
         end
 
         for comp = 1:NCOMP 
             for ts = 1:numel(Task)
                 SP(ts+2) = subplot(3,2,ts+2); %plot(logMAR_ver,mean(abs(Ver_cmplx(comp,:,:)),3),'-o','Color',Cols(comp,:),'linewidth',1.5);hold on;
-                errorbar(logMARs.(Task{ts}),mean(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:)),3),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+                errorbar(logMARs.(Task{ts}),mean(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:))),2),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
                 xlim([0 max(logMARs.(Task{ts}))+.15])
-                ylim([.2 .95])
+                ylim([.0 .95])
                 ylabel('Amplitude [\muV]','fontsize',FS)
+                Noise = mean(squeeze(mean(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})([1 3],comp,:,:)),1)),2);
+                fill([logMARs.(Task{ts}) logMARs.(Task{ts})(end:-1:1)],[Noise' zeros(size(logMARs.(Task{ts})))],[.7 .7 .7],'facealpha',1,'linestyle','none');
 
                 SP(ts+4) = subplot(3,2,ts+4);
-                TAng = wrapTo360(rad2deg(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(comp,:,:))));
-                errorbar(logMARs.(Task{ts}),mean(TAng,3),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+                TAng = wrapTo360(rad2deg(squeeze(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:)))));
+                errorbar(logMARs.(Task{ts}),mean(TAng,2),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
                 xlim([0 max(logMARs.(Task{ts}))+.15])
                 ylim([0 450])
                 xlabel('LogMAR','fontsize',FS);
@@ -217,7 +219,7 @@ if true
         close all;
         clear TSin TCos TCmplx;
     end
-    clear decompAxx_all W_all A_all D_all;
+    %clear decompAxx_all W_all A_all D_all;
 end
 %% Temporal dynamics of the RCs
 Styles = {'-','-'};
