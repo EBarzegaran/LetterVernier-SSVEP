@@ -159,6 +159,8 @@ if true
         for comp = NCOMP:-1:1
             for ts = 1:numel(Task)
                 S(comp+(ts-1)*2) = subplot(3,NCOMP*2,comp+(ts-1)*NCOMP);mrC.Simulate.plotOnEgi(A_all.(Task{ts}).(Harms{analHarms(f)})(:,comp)*Flips(ts));axis tight equal;caxis([-caxisS(ts,comp) caxisS(ts,comp)]);
+                [~,IndElec] = sort(A_all.(Task{ts}).(Harms{analHarms(f)})(:,comp)*Flips(ts),'descend');
+                Elec_max(f,ts,comp,:) = IndElec; 
                 title(['RC' num2str(comp)],'fontsize',FS,'Color',Cols(comp,:));%,'fontweight','normal');%colorbar;
                 set(S(comp+(ts-1)*2),'position',get(S(comp+(ts-1)*2),'position')+[-0.02+ts*.032 -.07 -.02 -.02]);
                 SPP = get(S(comp+(ts-1)*2),'position');
@@ -190,7 +192,7 @@ if true
         for comp = 1:NCOMP 
             for ts = 1:numel(Task)
                 SP(ts+2) = subplot(3,2,ts+2); %plot(logMAR_ver,mean(abs(Ver_cmplx(comp,:,:)),3),'-o','Color',Cols(comp,:),'linewidth',1.5);hold on;
-                errorbar(logMARs.(Task{ts}),mean(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:))),2),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:))),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+                errorbar(logMARs.(Task{ts}),mean(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:))),2),std(squeeze(abs(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:))),[],2)/sqrt(18),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
                 xlim([0 max(logMARs.(Task{ts}))+.15])
                 ylim([.0 .95])
                 ylabel('Amplitude [\muV]','fontsize',FS)
@@ -199,7 +201,8 @@ if true
 
                 SP(ts+4) = subplot(3,2,ts+4);
                 TAng = wrapTo360(rad2deg(squeeze(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:)))));
-                errorbar(logMARs.(Task{ts}),mean(TAng,2),std(squeeze(TAng),[],2)/sqrt(16),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+                TAng_all(f,ts,comp,:,:) = TAng;
+                errorbar(logMARs.(Task{ts}),mean(TAng,2),std(squeeze(TAng),[],2)/sqrt(18),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
                 xlim([0 max(logMARs.(Task{ts}))+.15])
                 ylim([0 450])
                 xlabel('LogMAR','fontsize',FS);
@@ -230,13 +233,83 @@ if true
             end
         end
 
-        print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
-        export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
+%         print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
+%         export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
         close all;
         clear TSin TCos TCmplx;
     end
     %clear decompAxx_all W_all A_all D_all;
 end
+
+%% Estimate temporal parameters of RC1 and RC2
+Harms2 = {'1F','2F'};
+FS = 11;
+tsec = 2.381:2.381:140*2.381;
+elecnum = [2 1;1 2];
+for f = 2:2
+    FIG  = figure;
+    set(FIG,'unit','inch','color','w','position',[3 3 8 6])
+    for ts = 1:numel(Task)
+         
+         subplot(2,2,ts),
+         [Elloc] = mrC.plotOnEgi(zeros(128,1));
+         hold on;
+         Ps = mean(Elloc(Elec_max(f,ts,1,1:elecnum(f,ts)),:),1);
+         ellipse(.1,.1*elecnum(f,ts),0,Ps(1),Ps(2),Cols(1,:))
+         text(Ps(1)-.2,Ps(2)+.3,'RC1','Color',Cols(1,:),'fontsize',FS,'fontweight','bold')
+         P1 = Ps(1:2);
+
+         hold on;
+         Ps = mean(Elloc(Elec_max(f,ts,2,1:elecnum(f,ts)),:),1);
+         ellipse(.1,.1*elecnum(f,ts),pi/2,Ps(1),Ps(2),Cols(2,:))
+         text(Ps(1)-.2,Ps(2)+.3,'RC2','Color',Cols(2,:),'fontsize',FS,'fontweight','bold')
+         P2 = Ps(1:2);
+         axis tight
+         text(-0.3, 1.6,Task{ts},'fontsize',FS+2,'fontweight','bold')
+         
+         % Plot the arrow
+         if f ==1
+            arrow('start',P1,'stop',P2,'Length',8,'Width',1.5)
+         else
+             arrow('start',P2,'stop',P1,'Length',8,'Width',1.5)
+         end
+         colormap(jmaColors('coolhotcortex'));
+         caxis([-.99 1])
+         %
+         PHtemp  = squeeze(TAng_all(f,ts,:,:,:));
+         PHdiff = squeeze(diff(PHtemp,[],1))/360*1000/3/f;
+         if f==2 % From RC2 to RC1
+             PHdiff = PHdiff*-1;
+         end
+         
+         S = subplot(2,2,ts+2);
+         errorbar(logMARs.(Task{ts}),mean(PHdiff,2),std(squeeze(PHdiff),[],2)/sqrt(18),'Color','k','MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+         M = max(abs(mean(PHdiff,2))+std(squeeze(PHdiff),[],2)/sqrt(18));
+         set(S,'position',get(S,'position')+[0 .1 0 0],'xtick',round(logMARs.(Task{ts}),2),'xticklabel',round(logMARs.(Task{ts}),2),'fontsize',FS,'linewidth',1.2,'layer','top')
+         xlim([0 max(logMARs.(Task{ts}))+.15])
+         xlabel('LogMAR','fontsize',FS);
+        
+         
+         if f==1
+              ylim([20 125]); 
+              if ts ==1
+                ylabel('Latency RC1-RC2 (mS)')
+              end
+         else
+             ylim([25 55]);
+             if ts ==1
+                ylabel('Latency RC2-RC1 (mS)')
+              end
+         end
+    end
+    
+    %print(FIG,['Figures/Temporal_RCA_' Harms2{f} '_AverageAll'],'-r300','-dtiff');axis tight;
+    export_fig(FIG,['Figures/Latency_RCA_' Harms2{f} '_AverageAll'],'-pdf');
+    close;
+end
+
+
+
 %% Temporal dynamics of the RCs
 Styles = {'-','-'};
 FreqIdxall = 6*(1:16)+1;
@@ -340,7 +413,7 @@ for f = 1:numel(analHarms) % for each harmonics
              end
              if cond==1 && ts ==2
                  ylabel('Amplitude(\muV)','fontsize',FS2,'fontweight','bold');%,'fontweight','bold');
-                 xlabel('Time(S)','fontsize',FS2,'fontweight','bold');
+                 xlabel('Time(mS)','fontsize',FS2,'fontweight','bold');
                  %ylabel(Task{ts},'fontsize',FS2,'fontweight','bold');%,'fontweight','bold');
              end
              xlim([0 333]);
@@ -353,5 +426,8 @@ for f = 1:numel(analHarms) % for each harmonics
      
      print(FIG,['Figures/Temporal_RCA_' Harms2{f} '_AverageAll'],'-r300','-dtiff');axis tight;
      export_fig(FIG,['Figures/Temporal_RCA_' Harms2{f} '_AverageAll'],'-pdf');
+     close;
 end
+
+
 
