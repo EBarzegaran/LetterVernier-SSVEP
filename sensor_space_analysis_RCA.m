@@ -10,19 +10,19 @@ addpath(genpath('/Users/elhamb/Documents/Codes/Git/EEGSourceSim'));
 addpath(genpath(fileparts(mfilename('fullpath'))))
 %% Load Axx trial files
 
-PDiva_Path = '/Users/elhamb/Documents/Data/TextScramble_exp1';
+PDiva_Path  =   '/Users/elhamb/Documents/Data/TextScramble_exp1';
 %mrC_Path = '/Volumes/svndl/mrC_Projects/VernierLetters/';
 
 % Read files from thge original folder
-Subjfolders = subfolders(PDiva_Path,0);
-Subjfolders =  Subjfolders(cellfun(@(x) ~isempty(x),strfind(Subjfolders,'nl-')));
-SubIDs = cellfun(@(x) x(1:7),Subjfolders,'UniformOutput',false);
+Subjfolders =   subfolders(PDiva_Path,0);
+Subjfolders =   Subjfolders(cellfun(@(x) ~isempty(x),strfind(Subjfolders,'nl-')));
+SubIDs      =   cellfun(@(x) x(1:7),Subjfolders,'UniformOutput',false);
 
-for Sub = 1:numel(Subjfolders)
-axx_trialFiles = subfiles(fullfile(PDiva_Path,Subjfolders{Sub},'Exp_MATL_HCN_128_Avg','Axx*_trials.mat'),1);
-    for Cond=1:length(axx_trialFiles)
-        axxStrct = matfile(axx_trialFiles{Cond});
-        outData{Sub,Cond} = mrC.axx.loadobj(axxStrct);
+for Sub     =   1:numel(Subjfolders)
+axx_trialFiles  =   subfiles(fullfile(PDiva_Path,Subjfolders{Sub},'Exp_MATL_HCN_128_Avg','Axx*_trials.mat'),1);
+    for Cond    =   1:length(axx_trialFiles)
+        axxStrct            =   matfile(axx_trialFiles{Cond});
+        outData{Sub,Cond}   =   mrC.axx.loadobj(axxStrct);
     end
 end
 clear axx_trialFiles axxStrct Cond Sub;
@@ -30,55 +30,91 @@ clear axx_trialFiles axxStrct Cond Sub;
 
 %% PCA on individual subjects and prepare data for group level RCA
 %load(fullfile('ResultData','FFT_Trial_Data'));
-Freqs = 0:outData{1,1}.dFHz:outData{1,1}.dFHz*(outData{1,1}.nFr-1);
-Task = {'Letter','Vernier'};
+Freqs   =   0:outData{1,1}.dFHz:outData{1,1}.dFHz*(outData{1,1}.nFr-1);
+Task    =   {'Letter','Vernier'};
 
 for Sub = 1:numel(SubIDs)
     % merge letter and vernier conditions for 
-    axx.(Task{1}){Sub} = MergeAxx(outData(Sub,1:5));
-    axxM.(Task{1}){Sub} =MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,1:5),'uni',false));
+    axx.(Task{1}){Sub}  =   MergeAxx(outData(Sub,1:5));
+    axxM.(Task{1}){Sub} =   MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,1:5),'uni',false));
     %[decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.RCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
      
-    axx.(Task{2}){Sub} = MergeAxx(outData(Sub,6:10));
-    axxM.(Task{2}){Sub} =MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,6:10),'uni',false));
+    axx.(Task{2}){Sub}  =   MergeAxx(outData(Sub,6:10));
+    axxM.(Task{2}){Sub} =   MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,6:10),'uni',false));
     %[decompAxx_ind.(Task{2}){Sub},~,A_ind.(Task{2}){Sub},~] = mrC.SpatialFilters.PCA(axx.(Task{2}){Sub},'freq_range',Freqs([7 19]));
 end
 
 clear Subjfolders;% outData;
 %% plot individual and average ASD results
 
-Ords = 1:10;
-Finds  = [7 13 19 25];
+Ords            =   1:10;
+Finds           =   [7 13 19 25];
 
-Sublist = num2cell(1:numel(SubIDs));
-Sublist{end+1} = 1:numel(SubIDs);
+Sublist         =   num2cell(1:numel(SubIDs));
+Sublist{end+1}  =   1:numel(SubIDs);
 load ResultData/LogMar_Val.mat
-logMAR = [logMAR_letter logMAR_ver];
+logMAR          =   [logMAR_letter logMAR_ver];
 % figure params
-FS = 9;
-SizeInc = .05;
-if false
-    for Sub =  numel(Sublist): numel(Sublist)
-        for i = 1:numel(Finds)%4
-            FIG = figure;
+FS              =   9;
+SizeInc         =   .05;
+if true
+    for Sub     =   numel(Sublist): numel(Sublist)
+        for i   =   1:numel(Finds)%4
+            FIG =   figure;
             set(FIG,'unit','inch','position',[17 10 7 2.36],'color','w')
             set(FIG,'unit','inch','paperposition',[17 10 7 2.36])
             clear Datamean Lim;
-            for Cond = 10:-1:1
-                axx_allsub = MergeAxx(outData(Sublist{Sub},Ords(Cond)));
-                FFT_allsub = axx_allsub.Cos+axx_allsub.Sin*1j;
-                Datamean{Cond} = abs(mean(FFT_allsub,3));
-                Lim(Cond) = max(mean(Datamean{Cond}([Finds(i) Finds(i)],:)));
+            for Cond    =   10:-1:1
+                axx_allsub      =   MergeAxx(outData(Sublist{Sub},Ords(Cond)));
+                FFT_allsub      =   axx_allsub.Cos+axx_allsub.Sin*1j;
+                Datamean{Cond}  =   (mean(FFT_allsub,3));
+                Lim(Cond)       =   max(mean(abs(Datamean{Cond}([Finds(i) Finds(i)],:))));
             end
-            LimC = [max(Lim(1:5)) max(Lim(6:10))];
+            %---------------A small plot for presentaton-------------------
+            if false
+                FIG2 =   figure;
+                set(FIG2,'unit','inch','position',[17 10 4 3],'color','w')
+                set(FIG2,'unit','inch','paperposition',[17 10 4 3])
+                bar(Freqs,abs(Datamean{2}(:,75)));
+                set(gca,'xtick',3:3:50);
+                xlim([1 30])
+                xlabel('Frequency(Hz)');
+                ylabel('ASD \muV')
+                export_fig(FIG2,'ASD_Letter_Cnd2_E75','-pdf');
+
+                bar(Freqs,abs(Datamean{10}(:,91)));
+                set(gca,'xtick',3:3:50);
+                xlim([1 30])
+                xlabel('Frequency(Hz)');
+                ylabel('ASD \muV')
+                export_fig(FIG2,'ASD_Vernier_Cnd5_E91','-pdf');
+                close all;
+            end
+            
+            %--------------A small plot for presentaton--------------------
+            if false
+                for ts = 2:2
+                    FIG2 = figure;
+                    set(FIG2,'unit','inch','position',[17 10 15 2.5],'color','w')
+                    set(FIG2,'unit','inch','paperposition',[17 10 15 2.5])
+                    for cnd = 1:5
+                        subplot(1,5,cnd),plotcomplex(Datamean{cnd+(5*(ts-1))}(13,:),.8)
+                    end
+                    export_fig(FIG2,['ASD_allelec_' Task{ts} 'F' num2str(Freqs(13))],'-pdf');
+                end
+                close all;
+                
+            end
+            %--------------------------------------------------------------
+            LimC    =   [max(Lim(1:5)) max(Lim(6:10))];
             for Cond = 10:-1:1
-                S = subplot(2,5,Cond); mrC.Simulate.plotOnEgi(mean(Datamean{Cond}([Finds(i) Finds(i)],:))); axis tight equal;
+                S   =   subplot(2,5,Cond); mrC.Simulate.plotOnEgi(mean(abs(Datamean{Cond}([Finds(i) Finds(i)],:)))); axis tight equal;
                 set(S,'position',get(S,'position')+[-SizeInc/2 -SizeInc/2-.01 SizeInc SizeInc]);
                 title(['logMAR = ' num2str(round(logMAR(Cond),2))],'fontsize',FS,'fontweight','normal');
 
                 if (Cond == 10)||(Cond==5)               
-                    SP = get(S,'position');
-                    h = colorbar;
+                    SP  =   get(S,'position');
+                    h   =   colorbar;
                     set(h,'ylim',[0 LimC(ceil(Cond/5))]);
                     set(S,'position',SP);
                     set(h,'position',get(h,'position')+[ .02 0 0 .0],'fontsize',FS);
@@ -243,29 +279,29 @@ end
 
 %% Estimate temporal parameters of RC1 and RC2
 Harms2 = {'1F','2F'};
-FS = 11;
+FS = 9;
 tsec = 2.381:2.381:140*2.381;
 elecnum = [2 1;1 2];
-for f = 2:2
+for f = 1:2
     FIG  = figure;
-    set(FIG,'unit','inch','color','w','position',[3 3 8 6])
+    set(FIG,'unit','inch','color','w','position',[3 3 5 4])
     for ts = 1:numel(Task)
          
          subplot(2,2,ts),
          [Elloc] = mrC.plotOnEgi(zeros(128,1));
          hold on;
          Ps = mean(Elloc(Elec_max(f,ts,1,1:elecnum(f,ts)),:),1);
-         ellipse(.1,.1*elecnum(f,ts),0,Ps(1),Ps(2),Cols(1,:))
-         text(Ps(1)-.2,Ps(2)+.3,'RC1','Color',Cols(1,:),'fontsize',FS,'fontweight','bold')
+         ellipse(.1,.1*elecnum(f,ts),pi/2,Ps(1),Ps(2),Cols(1,:))
+         text(Ps(1)-.2,Ps(2)+.35,'RC1','Color',Cols(1,:),'fontsize',FS-2,'fontweight','bold')
          P1 = Ps(1:2);
 
          hold on;
          Ps = mean(Elloc(Elec_max(f,ts,2,1:elecnum(f,ts)),:),1);
          ellipse(.1,.1*elecnum(f,ts),pi/2,Ps(1),Ps(2),Cols(2,:))
-         text(Ps(1)-.2,Ps(2)+.3,'RC2','Color',Cols(2,:),'fontsize',FS,'fontweight','bold')
+         text(Ps(1)-.2,Ps(2)+.35,'RC2','Color',Cols(2,:),'fontsize',FS-2,'fontweight','bold')
          P2 = Ps(1:2);
          axis tight
-         text(-0.3, 1.6,Task{ts},'fontsize',FS+2,'fontweight','bold')
+         text(-0.5, 1.7,Task{ts},'fontsize',FS+2,'fontweight','bold')
          
          % Plot the arrow
          if f ==1
@@ -283,22 +319,22 @@ for f = 2:2
          end
          
          S = subplot(2,2,ts+2);
-         errorbar(logMARs.(Task{ts}),mean(PHdiff,2),std(squeeze(PHdiff),[],2)/sqrt(18),'Color','k','MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
+         errorbar(logMARs.(Task{ts}),mean(PHdiff,2),std(squeeze(PHdiff),[],2)/sqrt(18),'Color','k','MarkerFaceColor',Cols(comp,:),'linewidth',1.2);hold on;box off
          M = max(abs(mean(PHdiff,2))+std(squeeze(PHdiff),[],2)/sqrt(18));
          set(S,'position',get(S,'position')+[0 .1 0 0],'xtick',round(logMARs.(Task{ts}),2),'xticklabel',round(logMARs.(Task{ts}),2),'fontsize',FS,'linewidth',1.2,'layer','top')
          xlim([0 max(logMARs.(Task{ts}))+.15])
          xlabel('LogMAR','fontsize',FS);
-        
+         xtickangle(90)
          
          if f==1
               ylim([20 125]); 
               if ts ==1
-                ylabel('Latency RC1-RC2 (mS)')
+                ylabel('Latency RC1-RC2 (msec)')
               end
          else
              ylim([25 55]);
              if ts ==1
-                ylabel('Latency RC2-RC1 (mS)')
+                ylabel('Latency RC2-RC1 (msec)')
               end
          end
     end
