@@ -100,4 +100,60 @@ annotation('doublearrow',[.48 .55],[.28 .28]);
 export_fig(Fig_Ver,'Stim_visualize','-pdf');
 print(Fig_Ver,'Stim_visualize','-r300','-dtiff');
 
+%% Video of the stimulus
+
+vidfile = VideoWriter(['Figures/EXPERIMENT2/Paradigm.mp4'],'MPEG-4');
+vidfile.FrameRate = 60;
+open(vidfile);
+
+cnd = 7;
+ccolors = {'b','r'};
+thold = 1;
+
+FIG = figure;
+
+set(FIG,'unit','pixel','position',[10 10 1440 768])
+colormap('gray')
+Tinds = [100 400];
+
+for t = 20 : 620
+    if mod(t,20)==0
+        hold off;
+        if mod(t,60)~=0
+            imagesc(img(:,:,cnd,randi(20),2));
+        else
+            if rand<.2
+                imagesc(img(:,end:-1:1,cnd,randi(20),1));
+            else
+                imagesc(img(:,:,cnd,randi(20),1));
+            end
+        end
+    end
+    
+    hold on;    
+    if t>(thold+15) % hold on to that color
+        holdc=0;
+        ind = 1;
+    end
+    
+    if (t>10) && (ismember(t,Tinds+20)) % change the color to red
+        ind = 2;
+        holdc =1;
+        thold = t;
+    end
+    
+    L = 30;
+    l(1) = line([1440 1440]/2,[768-L 768+L]/2,'linewidth',2.5,'color',ccolors{ind});
+    l(2) = line([1440-L 1440+L]/2,[768 768]/2,'linewidth',2.5,'color',ccolors{ind});
+    axis off
+    
+    
+    F(t-19)= getframe(FIG);
+    writeVideo(vidfile,F(t-19));
+    delete(l);
+    
+end
  
+
+close(vidfile);
+close all;

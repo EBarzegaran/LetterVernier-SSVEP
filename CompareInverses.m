@@ -1,7 +1,12 @@
+
 clear; clc;
 
+PATH = '/Users/elhamb/Documents/Codes/Git/mrC';
+addpath(genpath('/Users/elhamb/Documents/Codes/Git/EEGSourceSim'));
+addpath(genpath(PATH));
+
 %% 
-Path = '/Volumes/svndl/mrC_Projects/VernierLetters/source';
+ Path = '/Users/elhamb/Documents/Data/TextScramble_exp1/VernierLetters/source';
 Inverse1 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
 Inverse2 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
 
@@ -12,65 +17,82 @@ subIDs_Inverse = subIDs_Inverse(cellfun(@(x) ~isempty(x),Inverse));
 clear Inverse;
 
 % Pre-select ROIs
-[RoiList,subIDs] = mrC.Simulate.GetRoiClass(ProjectPath,[],subIDs_Inverse);% 13 subjects with Wang atlab 
+[RoiList,subIDs] = ESSim.Simulate.GetRoiClass(ProjectPath,[],subIDs_Inverse);% 13 subjects with Wang atlab 
 Wang_RoiList = cellfun(@(x) {x.getAtlasROIs('wang')},RoiList);
 kgs_RoiList = cellfun(@(x) {x.getAtlasROIs('kgs')},RoiList);
 Wangkgs_RoiList = arrayfun(@(x) Wang_RoiList{x}.mergROIs(kgs_RoiList{x}),1:numel(Wang_RoiList),'uni',false);
-ROIind = [15:18 25:52 57:59];% select a few ROIs
+
+%ROIind = [15:18 25:52 57:59]; % All ROIs
+ROIind = [29:36 41:44 51:52 57:58];                % Both dorsa and Ventral
+%ROIind = [31:32 35:36 43:44 51:52 57:58];          % Ventral V1-V3 and IOG and VWFA
+%ROIind = [29:30 35:36 43:44 51:52 57:58];          % Ventral and dorsal V1-V3 and IOG and VWFA
+%ROIind = [[31:32 35:36 43:44]-2 [51:52 57:58]];    % Dorsal V1-V3 and IOG and VWFA
+
 Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},Wangkgs_RoiList);
-ROILabel = Wangkgs_RoiList{1}.getFullNames('noatlas');
+%ROI_Final = Wangkgs_RoiList;
+
+% Merge the ROIs?
+Merges = {[1 3],[2 4], [5 7], [6 8], [9 11], [10 12], 13, 14, 15, 16}; % Merge ROIs
+% Merges = {[1 2],[3 4], [5 6], [7 8], [9 10]}; % Merge ROIs
+% Temp_Names = {'V1d','V2d','V3d','IOG','VWFA'};
+ Temp_Names = {'V1','V1','V2','V2','V3','V3','IOG','IOG','VWFA','VWFA'};
+ ROI_Final = cellfun(@(x) x.mergeIndROIs(Merges,Temp_Names),Wangkgs_RoiList,'uni',false);
+% 
+ ROILabel = ROI_Final{1}.getFullNames('noatlas');
 %% Generate Resolution matrices
 ResultPath = 'ResultData';
-FilePath = fullfile(ResultPath,'LocalizationExampleData_Paper.mat');
-do_new_data_generation = false;
+FilePath = fullfile(ResultPath,'LocalizationExampleData_Paper2.mat');
+do_new_data_generation = true;
 
 if ~exist(FilePath,'file') || do_new_data_generation
-    [CrossTalk1,Error1,ROISource1,~,~,~] = mrC.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
-        'rois',Wangkgs_RoiList,'doAUC',true,'inverse',Inverse1,'roiType','all');
+    [CrossTalk1,Error1,ROISource1,ScalpData,LIST,subIDs] = ESSim.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
+        'rois',ROI_Final,'doAUC',true,'inverse',Inverse1,'roiType','all');
     
-    [CrossTalk2,Error2,ROISource2,ScalpData,LIST,subIDs] = mrC.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
-        'rois',Wangkgs_RoiList,'doAUC',true,'inverse',Inverse2,'roiType','all');
-    save(FilePath,'CrossTalk1','Error1','ROISource1','CrossTalk2','Error2','ROISource2','ScalpData','LIST','subIDs');
+%     [CrossTalk2,Error2,ROISource2,ScalpData,LIST,subIDs] = ESSim.Simulate.ResolutionMatrices(ProjectPath,'subSelect',subIDs,...
+%         'rois',ROI_Final,'doAUC',true,'inverse',Inverse2,'roiType','all');
+    save(FilePath,'CrossTalk1','Error1','ROISource1','ScalpData','LIST','subIDs','ROILabel');
 else
     load(FilePath);
 end
 
 %% 
+FS = 12;
 FigPath = fullfile('Figures','SourceSpace');
 HemiName = {'left','right'};
 
 % Plot Cross Talk Matrices
 CrossTalk1 = cellfun(@(x) x./repmat(max(x),[size(x,1) 1]),CrossTalk1,'uni',false);% normalize
-CrossTalk2 = cellfun(@(x) x./repmat(max(x),[size(x,1) 1]),CrossTalk2,'uni',false);% normalize
-CT1 = (cat(3,CrossTalk1{:}));%CT1 = (CT1(1:2:end,1:2:end,:)+CT1(2:2:end,2:2:end,:))./2;
-CT2 = (cat(3,CrossTalk2{:}));%CT2 = (CT2(1:2:end,1:2:end,:)+CT2(2:2:end,2:2:end,:))./2;
-CT1 = CT1(ROIind,ROIind);
-CT2 = CT2(ROIind,ROIind);
+% CrossTalk2 = cellfun(@(x) x./repmat(max(x),[size(x,1) 1]),CrossTalk2,'uni',false);% normalize
+CT1 = (cat(3,CrossTalk1{:}));
+% CT2 = (cat(3,CrossTalk2{:}));
+
 
 FIG = figure;
-for i = 1:2
-    %eval(['CTM1 = mean(cat(3,CrossTalk' num2str(i) '{:}),3);']);
-    S = subplot(1,2,i);
-    eval(['imagesc((mean(CT' num2str(i) ',3)));']);
-    colormap(jmaColors('coolhot'));
-    %colormap('gray')
-    %caxis([-max(abs(CTMM(:))) max(abs(CTMM(:)))]);
-    caxis([-1 1]);
+for i = 1
+    eval(['CT_plot = ((mean(CT' num2str(i) ',3)));']);
+    %CT_plot(1:length(CT_plot)+1:end)=0;
+    imagesc(abs(CT_plot));
 
-    set(gca,'ytick',1:numel(ROILabel),'yticklabel',ROILabel,'xtick',1:numel(ROILabel),'xticklabel',ROILabel,'fontsize',10);
+   colormap(jmaColors('coolhot'));
+   colormap('gray')
+    %caxis([-max(abs(CTMM(:))) max(abs(CTMM(:)))]);
+    caxis([0 1]/1.5);
+
+    set(gca,'ytick',1:numel(ROILabel),'yticklabel',ROILabel,'xtick',1:numel(ROILabel),'xticklabel',ROILabel,'fontsize',FS);
     if exist('xtickangle'), xtickangle(90); end
     xlabel('receiving ROI','fontsize',12);
     if i==1
-        title('MN+FACE');
-    else
-        title('WMN+FACE');
+        %title('MN+FACE');
+        title('Cross Talk Matrix')
     end
+    colorbar
 end
-set(FIG,'PaperPosition',[1 1 20 8]);
+set(FIG,'PaperPosition',[1 1 8.5 8]);
 set(gcf, 'Color', 'w');
 set(FIG,'Units','Inch')
-set(FIG,'Position',[1 1 20 9]);
-print(fullfile(FigPath,'simulation',['CrossTalk_All']),'-dtiff','-r300');
+set(FIG,'Position',[1 1 8.5 8]);
+mkdir(fullfile(FigPath,'simulation'))
+print(fullfile(FigPath,'simulation','CrossTalk_All'),'-dtiff','-r300');
 close;
 
 %%

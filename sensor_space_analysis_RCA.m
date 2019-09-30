@@ -153,7 +153,7 @@ end
 %SELECT the harmonic to do analysis 
 analHarms = [1 2];
 Harms = {'H1F1','H2F1','H3F1','H4F1'};
-RedoRCA = false;
+RedoRCA = true;
 % Group Level RCA
 if RedoRCA || ~exist(fullfile('ResultData','GroupRCA.mat'),'file')
     for f = 1:numel(analHarms)
