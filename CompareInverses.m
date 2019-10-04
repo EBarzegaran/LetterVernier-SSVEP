@@ -12,6 +12,9 @@ Inverse2 = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
 
 ProjectPath = fullfile(Path);
 %% Select subjects with inverses
+Lateral = {'V','D','VD'};
+l = 3;
+
 [Inverse,subIDs_Inverse] = mrC.Simulate.ReadInverses(ProjectPath,Inverse1);
 subIDs_Inverse = subIDs_Inverse(cellfun(@(x) ~isempty(x),Inverse));
 clear Inverse;
@@ -22,26 +25,28 @@ Wang_RoiList = cellfun(@(x) {x.getAtlasROIs('wang')},RoiList);
 kgs_RoiList = cellfun(@(x) {x.getAtlasROIs('kgs')},RoiList);
 Wangkgs_RoiList = arrayfun(@(x) Wang_RoiList{x}.mergROIs(kgs_RoiList{x}),1:numel(Wang_RoiList),'uni',false);
 
-%ROIind = [15:18 25:52 57:59]; % All ROIs
-ROIind = [29:36 41:44 51:52 57:58];                % Both dorsa and Ventral
-%ROIind = [31:32 35:36 43:44 51:52 57:58];          % Ventral V1-V3 and IOG and VWFA
-%ROIind = [29:30 35:36 43:44 51:52 57:58];          % Ventral and dorsal V1-V3 and IOG and VWFA
-%ROIind = [[31:32 35:36 43:44]-2 [51:52 57:58]];    % Dorsal V1-V3 and IOG and VWFA
+switch l
+    case 1 % Ventral V1-V3 and IOG and VWFA
+        ROIind = [31:32 35:36 43:44 51:52 57:58];          
+        Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},Wangkgs_RoiList);
+        ROI_Final = Wangkgs_RoiList;
+    case 2 % Dorsal V1-V3 and IOG and VWFA
+        ROIind = [[31:32 35:36 43:44]-2 [51:52 57:58]];          
+        Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},Wangkgs_RoiList);
+        ROI_Final = Wangkgs_RoiList;
+    case 3 % Both dorsa and Ventral
+        ROIind = [29:36 41:44 51:52 57:58];                
+        Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},Wangkgs_RoiList);
+        Merges = {[1 3],[2 4], [5 7], [6 8], [9 11], [10 12], 13, 14, 15, 16}; % Merge ROIs
+        Temp_Names = {'V1','V1','V2','V2','V3','V3','IOG','IOG','VWFA','VWFA'};
+        ROI_Final = cellfun(@(x) x.mergeIndROIs(Merges,Temp_Names),Wangkgs_RoiList,'uni',false);
 
-Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},Wangkgs_RoiList);
-%ROI_Final = Wangkgs_RoiList;
-
-% Merge the ROIs?
-Merges = {[1 3],[2 4], [5 7], [6 8], [9 11], [10 12], 13, 14, 15, 16}; % Merge ROIs
-% Merges = {[1 2],[3 4], [5 6], [7 8], [9 10]}; % Merge ROIs
-% Temp_Names = {'V1d','V2d','V3d','IOG','VWFA'};
- Temp_Names = {'V1','V1','V2','V2','V3','V3','IOG','IOG','VWFA','VWFA'};
- ROI_Final = cellfun(@(x) x.mergeIndROIs(Merges,Temp_Names),Wangkgs_RoiList,'uni',false);
-% 
+end
+ 
  ROILabel = ROI_Final{1}.getFullNames('noatlas');
 %% Generate Resolution matrices
 ResultPath = 'ResultData';
-FilePath = fullfile(ResultPath,'LocalizationExampleData_Paper2.mat');
+FilePath = fullfile(ResultPath,['LocalizationExampleData_Paper' Lateral{l} '.mat']);
 do_new_data_generation = true;
 
 if ~exist(FilePath,'file') || do_new_data_generation

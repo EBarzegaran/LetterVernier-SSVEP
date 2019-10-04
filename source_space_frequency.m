@@ -14,12 +14,13 @@ addpath(genpath(path2));
 addpath(genpath('/Users/kohler/code/git/sweepAnalysis/functions/helper'));
 
 %% Convert spectrum data into source space
- Path = '/Users/elhamb/Documents/Data/TextScramble_exp1/VernierLetters/source';
-
+Path = '/Users/elhamb/Documents/Data/TextScramble_exp1/VernierLetters/source';
 Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr.inv';
+%Inverse = 'mneInv_bem_gcv_regu_F1_1_2_3_4_5_6_wangkgsROIsCorr_DepthWeight.inv';
 [outData,~,FreqFeatures,subIDs] = mrC.SourceBrain(Path,Inverse,'domain','frequency','doSmooth' , true);%,'template','nl-0014');
 
 %% Organize the data
+
 Task = {'Letter','Vernier'};
 Harms = {'h1F1','h2F1'};
 for ts = 1:2
@@ -30,28 +31,49 @@ end
 clear outData;
 
 %% Roi analysis: Estimate amplitude and phase for each Roi
+Lateral = {'V','D','VD'};
+l = 3;
 
 % Load ROIs
 [ROIs,subIDROI] = ESSim.Simulate.GetRoiClass(Path);
 Ords = cell2mat(arrayfun(@(x) find(strcmp(subIDROI,subIDs{x})),1:numel(subIDs),'uni',false));
 ROIs = ROIs(Ords);
 
-% Prepare Wang and KGS atlases
+% Load Wang and KGS atlases
 WangROIs = cellfun(@(x) x.getAtlasROIs('wang'),ROIs,'uni',false); 
 KgsROIs = cellfun(@(x) x.getAtlasROIs('kgs'),ROIs,'uni',false); 
 WKROIs = arrayfun(@(x) WangROIs{x}.mergROIs(KgsROIs{x}),1:numel(ROIs),'uni',false); 
-WKROIsM = cellfun(@(x) x.ROI2mat(20484),WKROIs,'uni',false);
-ROILabel = WKROIs{1}.getFullNames('noatlas');
-%InvROIs = arrayfun(@(x) Inverses{x}*WKROIsM{x}./(sum(WKROIsM{x})+eps),1:numel(Inverses),'uni',false);
 
+
+
+switch l
+    case 1 % Ventral V1-V3 and IOG and VWFA
+        ROIind = [31:32 35:36 43:44 51:52 57:58];          
+        Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},WKROIs);
+        ROI_Final = Wangkgs_RoiList;
+    case 2 % Dorsal V1-V3 and IOG and VWFA
+        ROIind = [[31:32 35:36 43:44]-2 [51:52 57:58]];          
+        Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},WKROIs);
+        ROI_Final = Wangkgs_RoiList;
+    case 3 % Both dorsa and Ventral
+        ROIind = [29:36 41:44 51:52 57:58];                
+        Wangkgs_RoiList = cellfun(@(x) {x.selectROIs(ROIind)},WKROIs);
+        Merges = {[1 3],[2 4], [5 7], [6 8], [9 11], [10 12], 13, 14, 15, 16}; % Merge ROIs
+        Temp_Names = {'V1','V1','V2','V2','V3','V3','IOG','IOG','VWFA','VWFA'};
+        ROI_Final = cellfun(@(x) x.mergeIndROIs(Merges,Temp_Names),Wangkgs_RoiList,'uni',false);
+
+end
+ 
+
+WKROIsM = cellfun(@(x) x.ROI2mat(20484),ROI_Final,'uni',false);
+ROILabelSel = ROI_Final{1}.getFullNames('noatlas');
+%InvROIs = arrayfun(@(x) Inverses{x}*WKROIsM{x}./(sum(WKROIsM{x})+eps),1:numel(Inverses),'uni',false);
 
 %% plot amps
 Finds  = [7];
-ROIselect = [29:30 35:36 43:44 51:52 57:58];          % Ventral and dorsal V1-V3 and IOG and VWFA
 
-ROILabelSel = ROILabel(ROIselect);
 for h = 1:1
-    for ts = 1:1
+    for ts = 1:2
        FIG = figure;
        set(FIG,'unit','inch','position',[3 5 20 8]);
        
@@ -61,7 +83,7 @@ for h = 1:1
            FDataROI.(Task{ts}).(Harms{h})(:,:,cond) = cat(1,FDataROI_temp{:});
        end
        
-       PData = squeeze(mean(FDataROI.(Task{ts}).(Harms{h})(:,ROIselect,:),1));
+       PData = squeeze(mean(FDataROI.(Task{ts}).(Harms{h})(:,:,:),1));
        %Results.('Amp').(Task{ts}).(Harms{h}) = abs(PData);
        subplot(2,1,1),bar(abs(PData(1:2:end,:)));
        set(gca,'xtick',1:22,'xticklabel',ROILabelSel(1:2:end));
@@ -90,8 +112,8 @@ for h = 1:1
            
        end
        
-       PData = squeeze(nanmean(FDataROI.(Task{ts}).(Harms{h})(:,ROIselect,:),1));
-       PData2 = squeeze(nanstd(FDataROI.(Task{ts}).(Harms{h})(:,ROIselect,:),[],1))/sqrt(10);
+       PData = squeeze(nanmean(FDataROI.(Task{ts}).(Harms{h})(:,:,:),1));
+       PData2 = squeeze(nanstd(FDataROI.(Task{ts}).(Harms{h})(:,:,:),[],1))/sqrt(10);
        
        Results.(Task{ts}).(Harms{h}).M = (PData);
        Results.(Task{ts}).(Harms{h}).S = (PData2);
@@ -108,7 +130,9 @@ for h = 1:1
 end
 
 %close all;
-save(fullfile('ResultData','ROISourceResults_freq'),'Results','ROILabelSel');
+save(fullfile('ResultData',['ROISourceResults_freq_' Lateral{l}]),'Results','ROILabelSel');
+
+
 %% sort ROIs according to phase
 InvName = 'MN';
 Cs = distinguishable_colors(18);
