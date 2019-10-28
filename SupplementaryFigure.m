@@ -7,7 +7,7 @@ addpath(genpath(PATH));
 load(fullfile('ResultData','GroupRCA.mat'));
 
 Lateral = {'V','D','VD'};
-l = 2;
+l = 3;
 
 %% set parameters and load RCA results
 FS = 14;
@@ -71,6 +71,37 @@ else
 end
 
 ScalpData = cat(3,ScalpData{:});% the first 10 is ROI and the second 10 is subject
+%--------------------------------------------------------------------------
+clear SB
+for i = 1:5
+    %SB(i,:,:) = squeeze(sum(ScalpData((i-1)*2+1:(i-1)*2+1,:,:),1));
+    SB(i,:,:) =squeeze(sum(ScalpData((i-1)*2+1:i*2,:,:),1));
+end
+
+SB = mean(SB,3);
+SB = [SB(:,:)' A_all.Letter.H1F1(:,1:2)];
+%SB(SB<0) = 0;
+
+SimTop=corr(SB.*abs(SB));
+
+FIG2 = figure;
+imagesc(squeeze((SimTop)));
+caxis([0 1]);
+
+% errorbar(squeeze(mean(SimTop,2)),squeeze(std(SimTop,[],2)/sqrt(10)))\
+Ticks = cellfun(@(x) x(1:end-2),ROILabel(1:2:10),'uni',false);
+Ticks{end+1} = 'RC1';
+Ticks{end+1} = 'RC2';
+set(gca,'xtick',1:7,'xticklabel',Ticks);
+set(gca,'ytick',1:7,'yticklabel',Ticks);
+xtickangle(90);
+% xlim([.5 5.5])
+%colormap(jmaColors('coolhotcortex'));
+colorbar;
+
+%--------------------------------------------------------------------------
+
+set(0,'CurrentFigure',FIG);
 
 for roi = 1:5
     SP(roi,1) = subplot(4,6,roi+1);
