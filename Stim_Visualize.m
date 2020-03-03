@@ -103,6 +103,7 @@ print(Fig_Ver,'Stim_visualize','-r300','-dtiff');
 %% Video of the stimulus
 
 vidfile = VideoWriter(['Figures/EXPERIMENT2/Paradigm.mp4'],'MPEG-4');
+load ResultData/LogMar_Val.mat
 vidfile.FrameRate = 60;
 open(vidfile);
 
@@ -157,3 +158,74 @@ end
 
 close(vidfile);
 close all;
+
+
+%% Video of the Vernier stimulus for presenation
+Time = 0:pi/50:8*pi;
+Sin1 = sin(Time);
+Sin2 = sin(Time-.4) + sin(0:pi/25:16*pi)*.7 + sin(0:pi/10:40*pi)*.3 + rand(1,numel(Time))*.3;
+%-----------------------------------------------
+vidfile = VideoWriter(['Figures/Paradigm_Vernier.mp4'],'MPEG-4');
+vidfile.FrameRate = 50;
+open(vidfile);
+FIG = figure;
+set(FIG, 'color','w','unit','inch','position',[0 0 15 10]);
+xImage = [-0.5 0.5; -0.5 0.5];   % The x data for the image corners
+yImage = [0 0; 0 0];             % The y data for the image corners
+zImage = [0.5 0.5; -0.5 -0.5];   % The z data for the image corners
+%--------------------------------------------------
+CND = 2;
+for f = 1:numel(Time)
+    S1 = subplot(2,2,2);
+    set(S1,'position',get(S1,'position')+[-.1 -.1 .2 .2])
+    if mod(f,50)==0
+        if CND ==1
+            CND=2;
+        else
+            CND=1;
+        end
+    end
+    surf(xImage,yImage,zImage,...    % Plot the surface
+         'CData',Im(1:300,1:400,5,CND),...
+         'FaceColor','texturemap');
+
+    view([45 25])
+    colormap(gray)
+    axis equal off
+    %--------------------------------------------------
+    S2 = subplot(2,2,4);
+    plot(Sin1(1:f),'k','linewidth',1.5); axis off
+    ylim([-2 1])
+    xlim([1 numel(Time)])
+    %--------------------------------------------------
+    S2 = subplot(2,2,3);
+    plot(Sin2(1:f),'k','linewidth',1.5); axis off
+    ylim([-4 2])
+    xlim([1 numel(Time)])
+    %--------------------------------------------------
+    pause(.002)
+    F(f)= getframe(FIG);
+    writeVideo(vidfile,F(f));
+
+end
+close(vidfile);
+close all;
+
+%%
+
+load ResultData/LogMar_Val.mat
+Letter_Im = img(:,:,1:2:end,1,1);
+Vernier_Im = Im(:,:,:,2);
+FIG = figure;
+set(FIG,'unit','inch','color','w','position',[0 0 15 5])
+
+for cnd = 1:5
+    S = subplot(2,5,cnd);imagesc(Letter_Im(1:700,1:700,cnd)); set(S,'xtick',[],'ytick',[]);%,'position',get(S,'position')+[.0 0 -.02 -.02]);
+    
+    title(['LogMAR = ' num2str(round(logMAR_letter(cnd),2))])
+    S = subplot(2,5,cnd+5);imagesc(Vernier_Im(1:400,1:400,cnd));set(S,'xtick',[],'ytick',[]);%,'position',get(S,'position')+[.0 0 -.02 -.02]);
+    
+    title(['LogMAR = ' num2str(round(logMAR_ver(cnd),2))])
+end
+colormap(gray)
+export_fig(Fig_Ver,'Stim_visualize_all_cnd','-pdf');

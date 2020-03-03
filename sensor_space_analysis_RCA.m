@@ -37,7 +37,7 @@ for Sub = 1:numel(SubIDs)
     % merge letter and vernier conditions for 
     axx.(Task{1}){Sub}  =   MergeAxx(outData(Sub,1:5));
     axxM.(Task{1}){Sub} =   MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,1:5),'uni',false));
-    %[decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.RCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]));
+    %[decompAxx_ind.(Task{1}){Sub},~,A_ind.(Task{1}){Sub},~] = mrC.SpatialFilters.RCA(axx.(Task{1}){Sub},'freq_range',Freqs([7 19]),'doVariance',true);
      
     axx.(Task{2}){Sub}  =   MergeAxx(outData(Sub,6:10));
     axxM.(Task{2}){Sub} =   MergeAxx(cellfun(@(x) x.AverageTrials(),outData(Sub,6:10),'uni',false));
@@ -153,16 +153,17 @@ end
 %SELECT the harmonic to do analysis 
 analHarms = [1 2];
 Harms = {'H1F1','H2F1','H3F1','H4F1'};
-RedoRCA = true;
+RedoRCA = false;
 % Group Level RCA
 if RedoRCA || ~exist(fullfile('ResultData','GroupRCA.mat'),'file')
     for f = 1:numel(analHarms)
         fRCA = Finds(analHarms(f));
         for ts = 1:numel(Task)
-            [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),W_all.(Task{ts}).(Harms{analHarms(f)}),A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)})] = mrC.SpatialFilters.RCA(MergeAxx(axx.(Task{ts})),'freq_range',Freqs(fRCA));
+            ts
+            [decompAxx_all.(Task{ts}).(Harms{analHarms(f)}),W_all.(Task{ts}).(Harms{analHarms(f)}),A_all.(Task{ts}).(Harms{analHarms(f)}),D_all.(Task{ts}).(Harms{analHarms(f)}),VarExpl] = mrC.SpatialFilters.RCA(MergeAxx(axx.(Task{ts})),'freq_range',Freqs(fRCA),'doVariance',true,'do_whitening',false);
         end
     end
-    save(fullfile('ResultData','GroupRCA'),'decompAxx_all','W_all','A_all','D_all','-v7.3');
+    save(fullfile('ResultData','GroupRCA'),'decompAxx_all','W_all','A_all','D_all','','-v7.3');
 else
     load(fullfile('ResultData','GroupRCA.mat'));
 end
@@ -272,11 +273,56 @@ if true
 %         print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
 %         export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
         close all;
-        clear TSin TCos TCmplx;
+        %clear TSin TCos TCmplx;
     end
     %clear decompAxx_all W_all A_all D_all;
 end
 
+%% Save the data for applying repeated measure anova, mixed model to test the phase and amplitude of the RCs in R
+for ts = 1:2
+    Temp_Data   = squeeze(TCmplx.(Task{ts}).H1F1(2,1:2,:,:));
+    Temp_noise  = squeeze(mean(TCmplx.(Task{ts}).H1F1(1:3,1:2,:,:),1));
+    Dims        = size(Temp_Data); 
+
+    RC          = repmat((1:Dims(1))',[1 Dims(2) Dims(3)]);
+    logMAR      = permute(repmat((1:Dims(2))',[1 Dims(1) Dims(3)]),[2 1 3]);
+    ids         = permute(repmat((1:Dims(3))',[1 Dims(1) Dims(2)]),[2 3 1]);
+
+    n1          = abs(Temp_noise(:));
+    y1          = abs(Temp_Data(:));
+    y2          = wrapTo360(rad2deg(squeeze(angle(Temp_Data(:)))));
+    RC          = RC(:);
+    logMAR      = logMAR(:);
+    ids         = ids(:);
+
+    T           = table(ids, RC, logMAR,y1,y2,'VariableNames',{'ids','RC','logMAR','y1','y2'});
+    T2          = table( [ids; ids],  [RC; RC], [logMAR; logMAR],[y1; n1],[ones(numel(y1),1);zeros(numel(y1),1)],'VariableNames',{'ids','RC','logMAR','score','sn'});
+     T.RC        = categorical(T.RC);
+     T.ids       = categorical(T.ids);
+     %T.logMAR      = categorical(T.logMAR);
+    
+    lme         = fitlme(T,'y2 ~ logMAR*RC + (1|ids)');
+    %lme2        = fitlme(T2,'score ~ sn + (1|ids)');
+    lme.anova
+    
+    S = squeeze(mean(Temp_Data,2));
+    N = squeeze(mean(Temp_noise,2));
+    SNR = 10*log10(abs(S).^2./abs(N).^2);
+    for RC = 1:2
+        
+        ids = repmat(1:Dims(3),2,1);
+        SN = repmat(1:2,Dims(3),1)';
+        y = abs([S(RC,:);N(RC,:)]);
+        TSNR = table(ids(:), SN(:), y(:),'VariableNames',{'ids','SN','y1'});
+        TSNR.ids       = categorical(TSNR.ids);
+        TSNR.SN       = categorical(TSNR.SN);
+        lmeSNR         = fitlme(TSNR,'y1 ~ SN  + (1|ids)');
+        lmeSNR.anova
+        
+    end
+    
+    %writetable(T,fullfile('ResultData',[Task{ts} '_forRANOVA']),'Delimiter',' ');
+end
 %% Estimate temporal parameters of RC1 and RC2
 Harms2 = {'1F','2F'};
 FS = 9;
