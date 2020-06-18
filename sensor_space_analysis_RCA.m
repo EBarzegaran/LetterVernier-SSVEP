@@ -237,6 +237,13 @@ if true
                 fill([logMARs.(Task{ts}) logMARs.(Task{ts})(end:-1:1)],[Noise' zeros(size(logMARs.(Task{ts})))+.00],[.7 .7 .7],'facealpha',.7,'linestyle','none');
 
                 SP(ts+4) = subplot(3,2,ts+4);
+                colororder({'k','k'})
+                yyaxis right;
+                ylabel('msec')
+                ylim([0 450])
+                set(gca,'ytick',0:90:360,'yticklabel',round([0:90:360]/360*(1000/3/f)))
+                
+                yyaxis left;
                 TAng = wrapTo360(rad2deg(squeeze(angle(TCmplx.(Task{ts}).(Harms{analHarms(f)})(2,comp,:,:)))));
                 TAng_all(f,ts,comp,:,:) = TAng;
                 errorbar(logMARs.(Task{ts}),mean(TAng,2),std(squeeze(TAng),[],2)/sqrt(18),'Color',Cols(comp,:),'MarkerFaceColor',Cols(comp,:),'linewidth',1.5);hold on;box off
@@ -244,6 +251,8 @@ if true
                 ylim([0 450])
                 xlabel('LogMAR','fontsize',FS);
                 ylabel('Phase [r]','fontsize',FS);
+                
+                
             end
 
         end
@@ -271,7 +280,7 @@ if true
         end
 
 %         print(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-r300','-dtiff');
-%         export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
+         export_fig(FIG,['Figures/TopoMap_individuals/RCA_' Harms{analHarms(f)} '_AverageAll'],'-pdf');
         close all;
         %clear TSin TCos TCmplx;
     end
